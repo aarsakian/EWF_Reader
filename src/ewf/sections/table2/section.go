@@ -5,7 +5,8 @@ import (
     "bytes"
     "time"
     "ewf/parseutil"
-   "fmt"
+    "fmt"
+  
 
     
 )
@@ -142,13 +143,15 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
             fmt.Println("ID", idx)
            
             data = sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+Chunk_Size]
-            parseutil.DecompressF(data)
+          
             if bytes.HasPrefix(data, zlib_header) {
+                parseutil.Decompress(data)
                  fmt.Println("IDX", idx,
                     sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+5],
                     "REM",uint32(len(sectors_buf))-entry.ChunkDataOffset-uint32(sectors_offs), "CompresseD?",entry.IsCompressed)
               //  parseutil.DecompressF(data)
             }
+           
     
     }
     //last data chunk maybe less than 32K size

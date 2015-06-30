@@ -62,8 +62,9 @@ func  Decompress(val []byte) ([]byte) {
 	if err != nil {
 		panic(err)
 	}
-    
+ 
 	io.Copy(&buf, r)
+    fmt.Printf("data %s %d \n",buf.Bytes(), len(buf.Bytes()))
 	r.Close()
   
     return buf.Bytes()
@@ -79,6 +80,7 @@ func  DecompressF(val []byte) ([]byte) {
    
   
 	io.Copy(&buf, r)
+   
 	r.Close()
     runtime.ReadMemStats(&m)
     fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,

@@ -3,34 +3,31 @@ package sectors
 
 import (
         "bytes"
-        "io"
+ 
        // "fmt"
-          "compress/flate"
+        
          "ewf/parseutil"
+           "hash/adler32"
        )
 
 type EWF_Sectors_Section struct {
-    body []byte
+    data []byte
+    checksum uint32 //adler32
 }
 
 func (ewf_sectors_section *EWF_Sectors_Section) GetAttr() (interface{}) {
-    return ewf_sectors_section.body[:]
+    return ewf_sectors_section.data[:]
 }
 
+
+func (ewf_sectors_section *EWF_Sectors_Section) ErrorFree() bool {
+   return ewf_sectors_section.checksum == adler32.Checksum(ewf_sectors_section.data)
+}
 
 func (ewf_sectors_section *EWF_Sectors_Section) Parse(buf *bytes.Reader){
    
-    ewf_sectors_section.body = make([]byte, buf.Len())
-    parseutil.Parse(buf, &ewf_sectors_section.body)
+   
+    ewf_sectors_section.data = make([]byte, buf.Len())
+    parseutil.Parse(buf, &ewf_sectors_section.data)
 }
 
-func (sectors *EWF_Sectors_Section) Decompress() ([]byte) {
-    b := bytes.NewReader(sectors.body)
-	r := flate.NewReader(b)
-    var buf bytes.Buffer// buffer needs no initilization pointer
-
-	io.Copy(&buf, r)
-	r.Close()
-  
-    return buf.Bytes()
-}
