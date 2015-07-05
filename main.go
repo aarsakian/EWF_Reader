@@ -84,10 +84,10 @@ func FindEvidenceFiles(path_ string) ([]string) {
         
         if !finfo.IsDir() {
         
-            if strings.HasPrefix(finfo.Name(), fname) {
+            if strings.HasPrefix(finfo.Name(), strings.Split(fname,".")[0]) {
                     
                     filenames[k] = path.Join(basePath, finfo.Name())//supply channel
-                    fmt.Println("INFO", basePath+finfo.Name())
+                    //fmt.Println("INFO", basePath+finfo.Name(), strings.Split(fname, ".")[0])
                     k += 1
             }     
           

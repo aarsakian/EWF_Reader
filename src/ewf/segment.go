@@ -17,7 +17,7 @@ import (
 
 const EWF_Section_Header_s uint64 = 76
 const EWF_Header_s uint64 = 13
-
+const NofSections = 32
 
 type EWF_file struct {
     File *os.File
@@ -51,71 +51,63 @@ func (ewf_header *EWF_Header) Parse(buf *bytes.Reader) {
 }
 
 
-func (ewf_file* EWF_file) ParseSegment() {
+func (ewf_file* EWF_file)  Verify() {
     
-    cur_offset := uint64(0)
-   // var parser Parser
-   
-    buf := ewf_file.ReadAt(EWF_Header_s, cur_offset)//producer
-    cur_offset+=EWF_Header_s
+}
+func (ewf_file* EWF_file) ParseHeader(cur_offset *uint64) {
+    defer parseutil.TimeTrack(time.Now(), "Parsing Segment Header")
+    buf := ewf_file.ReadAt(EWF_Header_s, *cur_offset)//producer
+    *cur_offset+=EWF_Header_s
     ewf_header :=new(EWF_Header)//ewf_header acts as a pointer
 
    
     
-    ewf_header.Parse(buf)//consumerf
+    ewf_header.Parse(buf)//consume
     sig := parseutil.Stringify(ewf_header.Signature[:])
    
     if !strings.Contains(sig, "EVF") {
         os.Exit(0)
     }
+  
     
+    
+}
+func (ewf_file* EWF_file) ParseSegment() {
+    
+   cur_offset := uint64(0)
+   // var parser Parser
+   
+  ewf_file.ParseHeader(&cur_offset)
    
    
     
-    var Sections[16] *sections.Section
-   
+    var Sections[NofSections] *sections.Section
+ 
     var m runtime.MemStats  
-    var data interface{}
-    var sectors_offs uint64
-    for i := 0; i <= 15; i++  {
+  //  var data interface{}
+    //var sectors_offs uint64
+    var buf *bytes.Reader
+    for i := 0; i <= NofSections; i++  {
      //   parsing section headers
        
         buf = ewf_file.ReadAt(EWF_Section_Header_s, cur_offset)//read section header
        
         cur_offset+=EWF_Section_Header_s
-        Sections[i] = new(sections.Section)
-        Sections[i].Section_header.Parse(buf)//parse attributes
-      
-      
-      
-       
-        
+        Sections[i] = new(sections.Section)//create section
+        Sections[i].ParseHeader(buf)
         Sections[i].Dispatch()//object factory
         if Sections[i].Type == "next" {
             
             ewf_file.hasNext = true
             break
         }
+        buf = ewf_file.ReadAt(Sections[i].BodyOffset-cur_offset, cur_offset)//read section body
         
-        //starting parsing sections body e.g. header2 ,table etc
-        fmt.Println("Cur OFFSET",i, "Size in KB",  Sections[i].Section_header.SectionSize/1024,"NEXT Section starts at",
-                     Sections[i].Section_header.NextSectionOffs/1024, "KB Remaining",
-                     (ewf_file.Size-cur_offset)/1024, "bufel", Sections[i].Section_header.NextSectionOffs-cur_offset)
-        buf = ewf_file.ReadAt( Sections[i].Section_header.NextSectionOffs-cur_offset, cur_offset)//read section body
        
-        if Sections[i].Type == "table2" || Sections[i].Type == "table" {
-            Sections[i].PC.Parse(buf)
-            Sections[i].PC.Collect(data.([]byte)[:], sectors_offs)
-        } else if Sections[i].Type == "sectors" {
-              Sections[i].P.Parse(buf)
-              data = Sections[i].P.GetAttr().([]byte)
-              sectors_offs = cur_offset
-              fmt.Println("TYPe",reflect.TypeOf(data))
-        } else {
-            Sections[i].P.Parse(buf)
-        }
+      
         
-        cur_offset = Sections[i].Section_header.NextSectionOffs
+        Sections[i].ParseBody(buf)
+        cur_offset = Sections[i].BodyOffset
       
         runtime.ReadMemStats(&m)
         fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,

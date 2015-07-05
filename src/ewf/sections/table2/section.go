@@ -6,7 +6,7 @@ import (
     "time"
     "ewf/parseutil"
     "fmt"
-  
+   
 
     
 )
@@ -140,15 +140,15 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
     zlib_header := []byte{72, 13}
     var data  []byte
     for  idx, entry := range ewf_table_section.table_entries[:len(ewf_table_section.table_entries)-1] {
-            fmt.Println("ID", idx)
+          
            
             data = sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+Chunk_Size]
           
             if bytes.HasPrefix(data, zlib_header) {
                 parseutil.Decompress(data)
-                 fmt.Println("IDX", idx,
-                    sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+5],
-                    "REM",uint32(len(sectors_buf))-entry.ChunkDataOffset-uint32(sectors_offs), "CompresseD?",entry.IsCompressed)
+                 fmt.Println("IDX", idx)
+                    /*sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+5],
+                    "REM",uint32(len(sectors_buf))-entry.ChunkDataOffset-uint32(sectors_offs), "CompresseD?",entry.IsCompressed)*/
               //  parseutil.DecompressF(data)
             }
            

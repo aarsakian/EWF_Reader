@@ -13,6 +13,7 @@ import (
     "ewf/sections/volume"
     "ewf/sections/data"
     "ewf/parseutil"
+    "hash/adler32"
 )
 
 
@@ -37,26 +38,53 @@ type ParserCollector interface{
 }
 
 type Section struct {
-    Section_header EWF_Section_Header
+    SHeader Section_Header
     Type string
+    BodyOffset uint64
     P Parser
-    PC ParserCollector
    
 }
 
-type EWF_Section_Header struct {
+type Section_Header struct {
     //after header of segment a section starts
     //size 76 bytes
     Header [16]uint8
     NextSectionOffs uint64 //from the start of the segment 
     SectionSize uint64
     Padding [40] uint8
-    Checksum [4] uint8
+    Checksum uint32
     
 }
 
 
-func (section *Section) Parse() {
+func (section *Section) ParseHeader(buf *bytes.Reader) {
+    section.SHeader.Parse(buf)//parse header attributes
+    section.BodyOffset = section.SHeader.NextSectionOffs
+  
+        //starting parsing sections body e.g. header2 ,table etc
+      /*  fmt.Println("Cur OFFSET",i, "Size in KB",  Sections[i].Section_header.SectionSize/1024,"NEXT Section starts at",
+                     Sections[i].Section_header.NextSectionOffs/1024, "KB Remaining",
+                     (ewf_file.Size-cur_offset)/1024, "bufel", Sections[i].Section_header.NextSectionOffs-cur_offset)*/
+        
+  
+       
+  
+
+}
+
+func (section *Section) ParseBody(buf *bytes.Reader) {
+    section.P.Parse(buf)
+    /* if Sections[i].Type == "table2" || Sections[i].Type == "table" {
+            Sections[i].PC.Parse(buf)
+            Sections[i].PC.Collect(data.([]byte)[:], sectors_offs)
+        } else if Sections[i].Type == "sectors" {
+              Sections[i].P.Parse(buf)
+              data = Sections[i].P.GetAttr().([]byte)
+              sectors_offs = cur_offset
+              fmt.Println("TYPe",reflect.TypeOf(data))
+        } else {
+            Sections[i].P.Parse(buf)
+        }*/
 }
 
 
@@ -73,9 +101,9 @@ func (section *Section) Dispatch()  {
         case "sectors":
            section.P =  new(sectors.EWF_Sectors_Section)
         case "table2":
-            section.PC =  new(table2.EWF_Table2_Section)
+            section.P =  new(table2.EWF_Table2_Section)
         case "table":
-            section.PC = new(table2.EWF_Table_Section)
+            section.P = new(table2.EWF_Table_Section)
         case "next":
            section.P = new(next.EWF_Next_Section)
         case "data":
@@ -88,19 +116,32 @@ func (section *Section) Dispatch()  {
 }
 
 
-func (ewf_section_header *EWF_Section_Header) Parse(buf *bytes.Reader) {
+func (section_header *Section_Header) Parse(buf *bytes.Reader) {
 
     defer parseutil.TimeTrack(time.Now(), "Parsing") //header of each section
-    s := reflect.ValueOf(ewf_section_header).Elem()
+      
+   
+    s := reflect.ValueOf(section_header).Elem()
     for i := 0; i < s.NumField(); i++ {
     //parse struct attributes
         parseutil.Parse(buf, s.Field(i).Addr().Interface())
        
     }
   
+   
 }
 
+func (section_header *Section_Header) Verify(datar *bytes.Reader) bool {
+    var buf []byte
+   
+    datar.Read(buf)
+     fmt.Println(section_header.Checksum, len(buf))
+    return section_header.Checksum == adler32.Checksum(buf[:72])
+   
+}
+
+
 func (section *Section) findType() {
-    section.Type = parseutil.Stringify(section.Section_header.Header[:])
+    section.Type = parseutil.Stringify(section.SHeader.Header[:])
 }
 

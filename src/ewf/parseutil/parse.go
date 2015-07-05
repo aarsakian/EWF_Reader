@@ -64,7 +64,7 @@ func  Decompress(val []byte) ([]byte) {
 	}
  
 	io.Copy(&buf, r)
-    fmt.Printf("data %s %d \n",buf.Bytes(), len(buf.Bytes()))
+ //   fmt.Printf("data  %d \n", len(buf.Bytes()))
 	r.Close()
   
     return buf.Bytes()
