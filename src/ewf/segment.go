@@ -22,7 +22,8 @@ const NofSections = 32
 type EWF_file struct {
     File *os.File
     Size uint64
-    hasNext bool 
+    hasNext bool
+    isLast bool
     SegmentNum uint
 }
 
@@ -91,27 +92,39 @@ func (ewf_file* EWF_file) ParseSegment() {
      //   parsing section headers
        
         buf = ewf_file.ReadAt(EWF_Section_Header_s, cur_offset)//read section header
-       
+     
         cur_offset+=EWF_Section_Header_s
         Sections[i] = new(sections.Section)//create section
         Sections[i].ParseHeader(buf)
-        Sections[i].Dispatch()//object factory
+        Sections[i].Dispatch()//object factory section body creation
         if Sections[i].Type == "next" {
             
             ewf_file.hasNext = true
             break
+        } else if Sections[i].Type == "done" {
+            
+            ewf_file.isLast = true
+            break
         }
-        buf = ewf_file.ReadAt(Sections[i].BodyOffset-cur_offset, cur_offset)//read section body
+        if Sections[i].Type != "sectors" {
+            buf = ewf_file.ReadAt(Sections[i].BodyOffset-cur_offset, cur_offset)//read section body
+     
+        }
         
+      
        
       
-        
-        Sections[i].ParseBody(buf)
-        cur_offset = Sections[i].BodyOffset
       
+        Sections[i].ParseBody(buf)
+        fmt.Println("finished ",Sections[i].Type,
+                 "KB Remaining",
+                     (ewf_file.Size-cur_offset)/1024, "OFFS", cur_offset, " length KB",
+                     (Sections[i].BodyOffset-cur_offset)/1024)
+        cur_offset = Sections[i].BodyOffset
         runtime.ReadMemStats(&m)
         fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,
             m.HeapIdle, m.HeapReleased, i)
+       
     }
     //disk section and sectors section
 }

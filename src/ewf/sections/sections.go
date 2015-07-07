@@ -12,6 +12,8 @@ import (
     "ewf/sections/disk"
     "ewf/sections/volume"
     "ewf/sections/data"
+    "ewf/sections/hash"
+    "ewf/sections/done"
     "ewf/parseutil"
     "hash/adler32"
 )
@@ -60,20 +62,14 @@ type Section_Header struct {
 func (section *Section) ParseHeader(buf *bytes.Reader) {
     section.SHeader.Parse(buf)//parse header attributes
     section.BodyOffset = section.SHeader.NextSectionOffs
-  
-        //starting parsing sections body e.g. header2 ,table etc
-      /*  fmt.Println("Cur OFFSET",i, "Size in KB",  Sections[i].Section_header.SectionSize/1024,"NEXT Section starts at",
-                     Sections[i].Section_header.NextSectionOffs/1024, "KB Remaining",
-                     (ewf_file.Size-cur_offset)/1024, "bufel", Sections[i].Section_header.NextSectionOffs-cur_offset)*/
-        
-  
-       
-  
 
 }
 
 func (section *Section) ParseBody(buf *bytes.Reader) {
-    section.P.Parse(buf)
+    if section.Type != "sectors" {
+        section.P.Parse(buf)
+    }
+ 
     /* if Sections[i].Type == "table2" || Sections[i].Type == "table" {
             Sections[i].PC.Parse(buf)
             Sections[i].PC.Collect(data.([]byte)[:], sectors_offs)
@@ -99,7 +95,7 @@ func (section *Section) Dispatch()  {
         case "disk":
             section.P =  new(disk.EWF_Disk_Section)
         case "sectors":
-           section.P =  new(sectors.EWF_Sectors_Section)
+            section.P =  new(sectors.EWF_Sectors_Section)
         case "table2":
             section.P =  new(table2.EWF_Table2_Section)
         case "table":
@@ -110,6 +106,10 @@ func (section *Section) Dispatch()  {
             section.P= new(data.EWF_Data_Section)
         case "volume":
           section.P = new(volume.EWF_Volume_Section)
+        case "Done":
+           section.P = new(done.EWF_Done_Section)
+        case "hash":
+           section.P = new(hash.EWF_Hash_Section)
     }
     fmt.Println("SECTION ", section.Type )
  

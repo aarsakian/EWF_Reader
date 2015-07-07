@@ -6,7 +6,7 @@ import (
     "log"
   
     "io/ioutil"
-    "path"
+    "path/filepath"
     "time"
     "ewf"
     "strings"
@@ -69,9 +69,9 @@ func ParseEvidence(filenames []string)  {
 
 func FindEvidenceFiles(path_ string) ([]string) {
    
-    basePath := path.Dir(path_)
+    basePath := filepath.Dir(path_)
     
-    _, fname := path.Split(path_)
+    _, fname := filepath.Split(path_)
     
     Files, err := ioutil.ReadDir(basePath)
     if err != nil {
@@ -86,7 +86,7 @@ func FindEvidenceFiles(path_ string) ([]string) {
         
             if strings.HasPrefix(finfo.Name(), strings.Split(fname,".")[0]) {
                     
-                    filenames[k] = path.Join(basePath, finfo.Name())//supply channel
+                    filenames[k] = filepath.Join(basePath, finfo.Name())//supply channel
                     //fmt.Println("INFO", basePath+finfo.Name(), strings.Split(fname, ".")[0])
                     k += 1
             }     
