@@ -24,6 +24,6 @@ func (done_section *EWF_Done_Section)  Parse(r *bytes.Reader){
     }
 }
 
-func (done_section *EWF_Done_Section) GetAttr() (interface{}) {
+func (done_section *EWF_Done_Section) GetAttr(string) (interface{}) {
     return ""
 }

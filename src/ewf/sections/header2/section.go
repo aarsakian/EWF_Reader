@@ -156,11 +156,11 @@ func NeedsDecompress(section_obj interface{}) (bool) {
 
 
 
-func (ewf_h2_section *EWF_Header2_Section) GetAttr() (interface{}) {
+func (ewf_h2_section *EWF_Header2_Section) GetAttr(string) (interface{}) {
     return ""
 }
 
 
-func (ewf_h_section *EWF_Header_Section) GetAttr() (interface{}) {
+func (ewf_h_section *EWF_Header_Section) GetAttr(string) (interface{}) {
     return ""
 }

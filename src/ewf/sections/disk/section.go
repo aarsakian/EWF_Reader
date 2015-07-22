@@ -6,7 +6,7 @@ import "bytes"
 type EWF_Disk_Section struct {
     body []byte
 }
-func (ewf_disk_section *EWF_Disk_Section) GetAttr() (interface{}) {
+func (ewf_disk_section *EWF_Disk_Section) GetAttr(string) (interface{}) {
     return &ewf_disk_section.body
 }
 

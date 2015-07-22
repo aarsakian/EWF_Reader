@@ -39,7 +39,7 @@ type Volume_Data struct {
 }
 
 
-func (ewf_data_section* EWF_Data_Section) GetAttr() (interface{}) {
+func (ewf_data_section* EWF_Data_Section) GetAttr(string) (interface{}) {
   
     return ""
 }

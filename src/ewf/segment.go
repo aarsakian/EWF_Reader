@@ -106,6 +106,7 @@ func (ewf_file* EWF_file) ParseSegment() {
             ewf_file.isLast = true
             break
         }
+     
         if Sections[i].Type != "sectors" {
             buf = ewf_file.ReadAt(Sections[i].BodyOffset-cur_offset, cur_offset)//read section body
      
@@ -122,8 +123,12 @@ func (ewf_file* EWF_file) ParseSegment() {
                      (Sections[i].BodyOffset-cur_offset)/1024)
         cur_offset = Sections[i].BodyOffset
         runtime.ReadMemStats(&m)
+        Sections[i].GetAttr("")
         fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,
             m.HeapIdle, m.HeapReleased, i)
+    
+           
+        
        
     }
     //disk section and sectors section

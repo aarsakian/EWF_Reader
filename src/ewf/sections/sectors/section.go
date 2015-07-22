@@ -15,7 +15,7 @@ type EWF_Sectors_Section struct {
   
 }
 
-func (ewf_sectors_section *EWF_Sectors_Section) GetAttr() (interface{}) {
+func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) (interface{}) {
     return ewf_sectors_section.data[:]
 }
 

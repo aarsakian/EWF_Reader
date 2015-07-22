@@ -166,11 +166,11 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 
 
 
-func (ewf_table_section *EWF_Table_Section) GetAttr() (interface{}) {
+func (ewf_table_section *EWF_Table_Section) GetAttr(string) (interface{}) {
     return ""
 }
 
 
-func (ewf_table2_section *EWF_Table2_Section) GetAttr() (interface{}) {
+func (ewf_table2_section *EWF_Table2_Section) GetAttr(string) (interface{}) {
     return ""
 }

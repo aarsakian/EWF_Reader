@@ -47,6 +47,6 @@ func (ewf_volume_section *EWF_Volume_Section) Parse(buf *bytes.Reader){
 }
 
 
-func (ewf_volume_section *EWF_Volume_Section) GetAttr() (interface{}) {
+func (ewf_volume_section *EWF_Volume_Section) GetAttr(string) (interface{}) {
     return ""
 }

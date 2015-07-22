@@ -4,6 +4,8 @@ import (
     "ewf/parseutil"
     "reflect"
     "time"
+    "fmt"
+    "encoding/hex"
 )
 
 
@@ -26,6 +28,8 @@ func (hash_section *EWF_Hash_Section)  Parse(r *bytes.Reader){
     }
 }
 
-func (hash_section *EWF_Hash_Section) GetAttr() (interface{}) {
-    return ""
+func (hash_section *EWF_Hash_Section) GetAttr(attr string) (interface{}) {
+  
+
+    return hex.EncodeToString(hash_section.MD5_value[:])
 }
