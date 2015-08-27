@@ -4,7 +4,7 @@ import (
     "ewf/parseutil"
     "reflect"
     "time"
-    "fmt"
+    
     "encoding/hex"
 )
 
@@ -29,7 +29,27 @@ func (hash_section *EWF_Hash_Section)  Parse(r *bytes.Reader){
 }
 
 func (hash_section *EWF_Hash_Section) GetAttr(attr string) (interface{}) {
+    s := reflect.ValueOf(hash_section).Elem()//retrieve since it's a pointer
   
+    
+    sub_s := s.FieldByName(attr)
+    if sub_s.IsValid() {
+      
+                switch v := sub_s.Interface().(type) {
+            
+                    case uint32, int8:
+                            return v
+                          
+                    case [16]uint8:
+                           return hex.EncodeToString(v[:])
+                            
+                    default:
+                            return "unknown"
+                           
+            }
 
-    return hex.EncodeToString(hash_section.MD5_value[:])
+    } else {
+        return "Not Valid"
+    }
 }
+   

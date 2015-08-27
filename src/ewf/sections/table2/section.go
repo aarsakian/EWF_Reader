@@ -6,6 +6,7 @@ import (
     "time"
     "ewf/parseutil"
     "fmt"
+    "reflect"
    
 
     
@@ -114,8 +115,8 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf *bytes.Reader) {
     for i :=uint32(0); i<ewf_table_section.table_header.nofEntries; i+=1  {
         
         ewf_table_section.table_entries[i].Parse(bytes.NewReader(val[0+k:4+k]))
-       // fmt.Println("EFW in by",i,len(buf)/4,
-             //   ewf_table_section.table_entries[i].IsCompressed,ewf_table_section.table_entries[i].ChunkDataOffset)
+      //  fmt.Println("EFW in by",i,
+        //       ewf_table_section.table_entries[i].IsCompressed,ewf_table_section.table_entries[i].ChunkDataOffset)
         k+=4
            
     }
@@ -166,7 +167,23 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 
 
 
-func (ewf_table_section *EWF_Table_Section) GetAttr(string) (interface{}) {
+func (ewf_table_section *EWF_Table_Section) GetAttr(attr string) (interface{}) {
+    s := reflect.ValueOf(ewf_table_section).Elem()//retrieve since it's a pointer
+  
+    
+    sub_s := s.FieldByName(attr)
+    
+    if (attr == "table_entries") {
+            for entry_number := 0; entry_number < sub_s.Len(); entry_number++ {
+               
+                 s_inner :=  sub_s.Index(entry_number)
+               //  fmt.Println("ADDR",s_inner)
+                for inner_idx :=0; inner_idx < s_inner.NumField(); inner_idx++ {
+                   // fmt.Println("ENTRY",s_inner.Field(inner_idx))
+                }
+            }
+      
+    }
     return ""
 }
 

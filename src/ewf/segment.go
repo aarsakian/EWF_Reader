@@ -78,7 +78,7 @@ func (ewf_file* EWF_file) ParseSegment() {
    cur_offset := uint64(0)
    // var parser Parser
    
-  ewf_file.ParseHeader(&cur_offset)
+   ewf_file.ParseHeader(&cur_offset)
    
    
     
@@ -123,7 +123,10 @@ func (ewf_file* EWF_file) ParseSegment() {
                      (Sections[i].BodyOffset-cur_offset)/1024)
         cur_offset = Sections[i].BodyOffset
         runtime.ReadMemStats(&m)
-        Sections[i].GetAttr("")
+        Sections[i].GetAttr("table_entries")
+        md5 := Sections[i].GetAttr("MD5_value")
+        fmt.Println("MD5",md5)
+       
         fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,
             m.HeapIdle, m.HeapReleased, i)
     

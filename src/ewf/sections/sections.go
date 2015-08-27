@@ -41,7 +41,7 @@ type Section struct {
     SHeader Section_Header
     Type string
     BodyOffset uint64
-    Body Body
+    body Body
    
 }
 
@@ -56,8 +56,8 @@ type Section_Header struct {
     
 }
 
-func (section *Section) GetAttr(val string) {
-    section.Body.GetAttr(val)
+func (section *Section) GetAttr(val string) (interface{}) {
+    return section.body.GetAttr(val)
 }
 
 
@@ -69,7 +69,8 @@ func (section *Section) ParseHeader(buf *bytes.Reader) {
 
 func (section *Section) ParseBody(buf *bytes.Reader) {
     if section.Type != "sectors" {
-        section.Body.Parse(buf)
+        section.body.Parse(buf)
+     
     }
  
     /* if Sections[i].Type == "table2" || Sections[i].Type == "table" {
@@ -91,27 +92,27 @@ func (section *Section) Dispatch()  {
     section.findType()
     switch section.Type {
         case "header2":
-            section.Body = new(header2.EWF_Header2_Section)
+            section.body = new(header2.EWF_Header2_Section)
         case "header":
-            section.Body =  new(header2.EWF_Header_Section)
+            section.body =  new(header2.EWF_Header_Section)
         case "disk":
-            section.Body =  new(disk.EWF_Disk_Section)
+            section.body =  new(disk.EWF_Disk_Section)
         case "sectors":
-            section.Body =  new(sectors.EWF_Sectors_Section)
+            section.body =  new(sectors.EWF_Sectors_Section)
         case "table2":
-            section.Body =  new(table2.EWF_Table2_Section)
+            section.body =  new(table2.EWF_Table2_Section)
         case "table":
-            section.Body = new(table2.EWF_Table_Section)
+            section.body = new(table2.EWF_Table_Section)
         case "next":
-           section.Body = new(next.EWF_Next_Section)
+           section.body = new(next.EWF_Next_Section)
         case "data":
-            section.Body = new(data.EWF_Data_Section)
+            section.body = new(data.EWF_Data_Section)
         case "volume":
-          section.Body = new(volume.EWF_Volume_Section)
+          section.body = new(volume.EWF_Volume_Section)
         case "Done":
-           section.Body = new(done.EWF_Done_Section)
+           section.body = new(done.EWF_Done_Section)
         case "hash":
-           section.Body = new(hash.EWF_Hash_Section)
+           section.body = new(hash.EWF_Hash_Section)
     }
     fmt.Println("SECTION ", section.Type )
  
