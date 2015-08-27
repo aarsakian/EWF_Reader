@@ -36,7 +36,7 @@ type EWF_Table2_Section struct {
 //table section  identifier 
 type EWF_Table_Section struct {
     table_header EWF_Table_Section_Header
-    table_entries []EWF_Table_Section_Entry
+    Table_entries []EWF_Table_Section_Entry
     table_footer EWF_Table_Section_Footer
 }
 
@@ -111,10 +111,10 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf *bytes.Reader) {
     ewf_table_section.table_footer.Parse(bytes.NewReader(val[len(val)-4:len(val)]))
     val = val[24:len(val)-4]
     k:=0
-    ewf_table_section.table_entries = make([]EWF_Table_Section_Entry ,ewf_table_section.table_header.nofEntries)
+    ewf_table_section.Table_entries = make([]EWF_Table_Section_Entry ,ewf_table_section.table_header.nofEntries)
     for i :=uint32(0); i<ewf_table_section.table_header.nofEntries; i+=1  {
         
-        ewf_table_section.table_entries[i].Parse(bytes.NewReader(val[0+k:4+k]))
+        ewf_table_section.Table_entries[i].Parse(bytes.NewReader(val[0+k:4+k]))
       //  fmt.Println("EFW in by",i,
         //       ewf_table_section.table_entries[i].IsCompressed,ewf_table_section.table_entries[i].ChunkDataOffset)
         k+=4
@@ -137,10 +137,10 @@ func (ewf_table2_section *EWF_Table2_Section) Collect([]byte, uint64){
 
 
 func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_offs uint64) {
-    fmt.Println("NODF entries",len(ewf_table_section.table_entries),ewf_table_section.table_header.nofEntries)
+    fmt.Println("NODF entries",len(ewf_table_section.Table_entries),ewf_table_section.table_header.nofEntries)
     zlib_header := []byte{72, 13}
     var data  []byte
-    for  idx, entry := range ewf_table_section.table_entries[:len(ewf_table_section.table_entries)-1] {
+    for  idx, entry := range ewf_table_section.Table_entries[:len(ewf_table_section.Table_entries)-1] {
           
            
             data = sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+Chunk_Size]
@@ -156,7 +156,7 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
     
     }
     //last data chunk maybe less than 32K size
-    last_entry := ewf_table_section.table_entries[len(ewf_table_section.table_entries)-1]
+    last_entry := ewf_table_section.Table_entries[len(ewf_table_section.Table_entries)-1]
     data = sectors_buf[last_entry.ChunkDataOffset-uint32(sectors_offs):
                        last_entry.ChunkDataOffset-uint32(sectors_offs)+
                        uint32(len(sectors_buf))-last_entry.ChunkDataOffset-uint32(sectors_offs)]
@@ -166,25 +166,33 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 }
 
 
+func (entry *EWF_Table_Section_Entry) GetAttr(attr string)  (interface{}) {
+   
+    
+    return reflect.ValueOf(entry).Elem().FieldByName(attr).Interface()
+}
+
 
 func (ewf_table_section *EWF_Table_Section) GetAttr(attr string) (interface{}) {
     s := reflect.ValueOf(ewf_table_section).Elem()//retrieve since it's a pointer
   
-    
+  
     sub_s := s.FieldByName(attr)
     
-    if (attr == "table_entries") {
+    if (attr == "Table_entries") {
+        data_offsets := make([]uint32,sub_s.Len())
             for entry_number := 0; entry_number < sub_s.Len(); entry_number++ {
+                 s_inner := sub_s.Index(entry_number).Addr()
+                // get_attr_f := s_inner.MethodByName("GetAttr")
+                // fmt.Println("OFFSET",s_inner,get_attr_f.Call( [] reflect.Value{reflect.ValueOf("ChunkDataOffset")}))
                
-                 s_inner :=  sub_s.Index(entry_number)
-               //  fmt.Println("ADDR",s_inner)
-                for inner_idx :=0; inner_idx < s_inner.NumField(); inner_idx++ {
-                   // fmt.Println("ENTRY",s_inner.Field(inner_idx))
-                }
+                 data_offsets[entry_number] = s_inner.Elem().FieldByName("ChunkDataOffset").Interface().(uint32)
             }
-      
+        return data_offsets
+    } else {
+        return ""
     }
-    return ""
+   
 }
 
 
