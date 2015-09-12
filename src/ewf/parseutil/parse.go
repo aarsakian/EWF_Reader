@@ -33,6 +33,19 @@ func TimeTrack(start time.Time, name string) {
     log.Printf("%s took %s ", name, elapsed)
 }
 
+func Append(src []uint32, data []uint32) []uint32 {
+    m := len(src)
+    n := m + len(data)
+    if n > cap(src) { //reallocated
+        dst := make([]uint32, (n+1)*2)
+        copy(dst, src)
+        src = dst
+    }
+    src = src[0:n]
+    copy(src[m:n], data)
+    return src
+}
+
 
 func SetTime(attr []byte) (time.Time) {
   //  fmt.Println("TIME LEN",string(attr),attr,len(attr))

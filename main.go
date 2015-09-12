@@ -54,7 +54,7 @@ func ParseEvidence(filenames []string)  {
         ewf_file.Size = uint64(fsize)
         ewf_file.ParseSegment()
         ewf_file.SegmentNum = 1
-        
+        fmt.Println("NPF", len(ewf_file.Entries))
         defer file.Close()
         elapsed := time.Since(start)
         fmt.Printf("Parsed Evidence %s in %s\n ", filename, elapsed)

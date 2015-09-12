@@ -25,6 +25,7 @@ type EWF_file struct {
     hasNext bool
     isLast bool
     SegmentNum uint
+    Entries  []uint32
 }
 
 
@@ -88,7 +89,8 @@ func (ewf_file* EWF_file) ParseSegment() {
   //  var data interface{}
     //var sectors_offs uint64
     var buf *bytes.Reader
-    for i := 0; i <= NofSections; i++  {
+    
+    for   i := 0; i <= NofSections; i++  {
      //   parsing section headers
        
         buf = ewf_file.ReadAt(EWF_Section_Header_s, cur_offset)//read section header
@@ -123,18 +125,24 @@ func (ewf_file* EWF_file) ParseSegment() {
                      (Sections[i].BodyOffset-cur_offset)/1024)
         cur_offset = Sections[i].BodyOffset
         runtime.ReadMemStats(&m)
-        entries := Sections[i].GetAttr("Table_entries")
-        md5 := Sections[i].GetAttr("MD5_value")
-        fmt.Println("MD5",md5, entries)
+        if Sections[i].Type == "table" {
+            e:=Sections[i].GetAttr("Table_entries").([]uint32)[:]
+          
+            ewf_file.Entries = parseutil.Append(ewf_file.Entries, e)
+          
+        }
+        Sections[i].GetAttr("MD5_value")
+        
+     
        
         fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,
             m.HeapIdle, m.HeapReleased, i)
     
-           
         
        
     }
     //disk section and sectors section
+    
 }
 
 
