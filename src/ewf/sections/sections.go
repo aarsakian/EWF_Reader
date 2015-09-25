@@ -14,6 +14,7 @@ import (
     "ewf/sections/data"
     "ewf/sections/hash"
     "ewf/sections/done"
+    "ewf/sections/digest"
     "ewf/parseutil"
     "hash/adler32"
 )
@@ -113,6 +114,8 @@ func (section *Section) Dispatch()  {
            section.body = new(done.EWF_Done_Section)
         case "hash":
            section.body = new(hash.EWF_Hash_Section)
+        case "digest":
+            section.body = new(digest.EWF_Digest_Section)
     }
     fmt.Println("SECTION ", section.Type )
  

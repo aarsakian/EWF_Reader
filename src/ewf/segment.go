@@ -17,7 +17,7 @@ import (
 
 const EWF_Section_Header_s uint64 = 76
 const EWF_Header_s uint64 = 13
-const NofSections = 32
+const NofSections = 200
 
 type EWF_file struct {
     File *os.File

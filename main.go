@@ -4,7 +4,7 @@ import (
     "fmt"
     "os"
     "log"
-  
+    "ewf/parseutil"
     "io/ioutil"
     "path/filepath"
     "time"
@@ -54,11 +54,14 @@ func ParseEvidence(filenames []string)  {
         ewf_file.Size = uint64(fsize)
         ewf_file.ParseSegment()
         ewf_file.SegmentNum = 1
-        fmt.Println("NPF", len(ewf_file.Entries))
+        fmt.Println("NPF",  ewf_file.Entries[0])
         defer file.Close()
         elapsed := time.Since(start)
         fmt.Printf("Parsed Evidence %s in %s\n ", filename, elapsed)
-      
+        buf := ewf_file.ReadAt(uint64(ewf_file.Entries[0]), 64*512)
+        var val interface{}
+    //    parseutil.Parse(buf, val)
+        break
     
     }
 }
@@ -94,6 +97,7 @@ func FindEvidenceFiles(path_ string) ([]string) {
         }
     }
     filenames = filenames[:k]
+    fmt.Println(filenames)
     return filenames
   
 }
