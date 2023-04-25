@@ -3,7 +3,7 @@ package ewf
 import (
 	"bytes"
 
-	"github.com/aarsakian/src/ewf/sections"
+	"github.com/aarsakian/ewf/sections"
 
 	"fmt"
 	"io"
@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aarsakian/src/ewf/utils"
+	"github.com/aarsakian/ewf/utils"
 )
 
 const EWF_Section_Header_s int64 = 76

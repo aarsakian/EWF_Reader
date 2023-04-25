@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aarsakian/EWF_READER/src/ewf"
+	"github.com/aarsakian/EWF_READER/ewf"
 )
 
 var MediaTypes = map[uint]string{0x00: "Removable Storage Media",
