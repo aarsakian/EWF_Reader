@@ -2,20 +2,21 @@ package sections
 
 import (
 	"bytes"
-	"ewf/sections/data"
-	"ewf/sections/digest"
-	"ewf/sections/disk"
-	"ewf/sections/done"
-	"ewf/sections/hash"
-	"ewf/sections/header2"
-	"ewf/sections/next"
-	"ewf/sections/sectors"
-	"ewf/sections/table2"
-	"ewf/sections/volume"
 	"fmt"
 	"hash/adler32"
 	"reflect"
 	"time"
+
+	"github.com/aarsakian/EWF_READER/ewf/sections/data"
+	"github.com/aarsakian/EWF_READER/ewf/sections/digest"
+	"github.com/aarsakian/EWF_READER/ewf/sections/disk"
+	"github.com/aarsakian/EWF_READER/ewf/sections/done"
+	"github.com/aarsakian/EWF_READER/ewf/sections/hash"
+	"github.com/aarsakian/EWF_READER/ewf/sections/header2"
+	"github.com/aarsakian/EWF_READER/ewf/sections/next"
+	"github.com/aarsakian/EWF_READER/ewf/sections/sectors"
+	"github.com/aarsakian/EWF_READER/ewf/sections/table2"
+	"github.com/aarsakian/EWF_READER/ewf/sections/volume"
 )
 
 type Sections []Section
