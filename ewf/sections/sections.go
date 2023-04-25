@@ -7,16 +7,17 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/aarsakian/EWF_READER/ewf/sections/data"
-	"github.com/aarsakian/EWF_READER/ewf/sections/digest"
-	"github.com/aarsakian/EWF_READER/ewf/sections/disk"
-	"github.com/aarsakian/EWF_READER/ewf/sections/done"
-	"github.com/aarsakian/EWF_READER/ewf/sections/hash"
-	"github.com/aarsakian/EWF_READER/ewf/sections/header2"
-	"github.com/aarsakian/EWF_READER/ewf/sections/next"
-	"github.com/aarsakian/EWF_READER/ewf/sections/sectors"
-	"github.com/aarsakian/EWF_READER/ewf/sections/table2"
-	"github.com/aarsakian/EWF_READER/ewf/sections/volume"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/data"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/digest"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/disk"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/done"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/hash"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/header2"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/next"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/sectors"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/table2"
+	"github.com/aarsakian/EWF_Reader/ewf/sections/volume"
+	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type Sections []Section
@@ -116,12 +117,12 @@ func (section *Section) Dispatch() {
 
 func (section_header *Section_Header) Parse(buf *bytes.Reader) {
 
-	defer parseutil.TimeTrack(time.Now(), "Parsing") //header of each section
+	defer utils.TimeTrack(time.Now(), "Parsing") //header of each section
 
 	s := reflect.ValueOf(section_header).Elem()
 	for i := 0; i < s.NumField(); i++ {
 		//parse struct attributes
-		parseutil.Parse(buf, s.Field(i).Addr().Interface())
+		utils.Parse(buf, s.Field(i).Addr().Interface())
 
 	}
 
@@ -137,5 +138,5 @@ func (section_header *Section_Header) Verify(datar *bytes.Reader) bool {
 }
 
 func (section *Section) findType() {
-	section.Type = parseutil.Stringify(section.SHeader.Header[:])
+	section.Type = utils.Stringify(section.SHeader.Header[:])
 }

@@ -112,7 +112,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 		if Sections[i].Type == "table" {
 			e := Sections[i].GetAttr("Table_entries").([]uint32)[:]
 
-			ewf_file.Entries = parseutil.Append(ewf_file.Entries, e)
+			ewf_file.Entries = utils.Append(ewf_file.Entries, e)
 
 		}
 		Sections[i].GetAttr("MD5_value")
@@ -127,7 +127,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 func (ewf_file *EWF_file) ReadAt(length uint64, off uint64) *bytes.Reader {
 	//cast to struct respecting endianess
-	defer parseutil.TimeTrack(time.Now(), "reading")
+	defer utils.TimeTrack(time.Now(), "reading")
 	buff := make([]byte, length)
 	var err error
 	var n int

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aarsakian/EWF_READER/ewf"
+	"github.com/aarsakian/EWF_Reader/ewf"
 )
 
 var MediaTypes = map[uint]string{0x00: "Removable Storage Media",
@@ -53,7 +53,7 @@ func ParseEvidence(filenames []string) {
 		fmt.Printf("Parsed Evidence %s in %s\n ", filename, elapsed)
 		/*	buf := ewf_file.ReadAt(uint64(ewf_file.Entries[0]), 64*512)
 			var val interface{}
-			//    parseutil.Parse(buf, val)*/
+			//    utils.Parse(buf, val)*/
 		break
 
 	}
