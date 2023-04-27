@@ -52,11 +52,21 @@ func Unmarshal(data []byte, v interface{}) error {
 			binary.Read(bytes.NewBuffer(data[idx:idx+2]), binary.LittleEndian, &temp)
 			field.SetUint(uint64(temp))
 			idx += 2
+		case reflect.Int32:
+			var temp int32
+			binary.Read(bytes.NewBuffer(data[idx:idx+4]), binary.LittleEndian, &temp)
+			field.SetInt(int64(temp))
+			idx += 4
 		case reflect.Uint32:
 			var temp uint32
 			binary.Read(bytes.NewBuffer(data[idx:idx+4]), binary.LittleEndian, &temp)
 			field.SetUint(uint64(temp))
 			idx += 4
+		case reflect.Int64:
+			var temp int64
+			binary.Read(bytes.NewBuffer(data[idx:idx+8]), binary.LittleEndian, &temp)
+			field.SetInt(temp)
+			idx += 8
 		case reflect.Uint64:
 			var temp uint64
 			name := structType.Elem().Field(i).Name
@@ -176,12 +186,10 @@ func DecompressF(val []byte) []byte {
 func Stringify(val []uint8) string {
 	var str string
 	for _, elem := range val {
-		if elem != 0 {
-			str += string(elem)
-		} else {
-			str = fmt.Sprintf("%s", str)
+		if elem == 0 {
 			break
 		}
+		str += string(elem)
 
 	}
 	return str
