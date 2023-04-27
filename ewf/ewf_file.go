@@ -2,9 +2,6 @@ package ewf
 
 import (
 	"bytes"
-
-	"github.com/aarsakian/EWF_Reader/ewf/sections"
-
 	"fmt"
 	"io"
 	"log"
@@ -15,18 +12,19 @@ import (
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
-const EWF_Section_Header_s int64 = 76
+const EWF_Section_Header_s uint64 = 76
 const EWF_Header_s int64 = 13
 const NofSections = 200
 
 type EWF_file struct {
 	File       *os.File
-	Size       uint64
+	Size       int64
 	hasNext    bool
 	isLast     bool
 	SegmentNum uint
 	Entries    []uint32
 	Header     *EWF_Header
+	Sections   *Sections
 }
 
 type EWF_Header struct {
@@ -40,13 +38,13 @@ type EWF_Header struct {
 func (ewf_file *EWF_file) Verify() {
 
 }
-func (ewf_file *EWF_file) ParseHeader(cur_offset *uint64) {
+func (ewf_file *EWF_file) ParseHeader() {
 	defer utils.TimeTrack(time.Now(), "Parsing Segment Header")
 	var ewf_header *EWF_Header = new(EWF_Header)
 
 	buf := make([]byte, EWF_Header_s)
 	ewf_file.File.ReadAt(buf, 0)
-	utils.Umarshal(buf, ewf_header)
+	utils.Unmarshal(buf, ewf_header)
 
 	sig := utils.Stringify(ewf_header.Signature[:])
 
@@ -60,7 +58,7 @@ func (ewf_file *EWF_file) ParseHeader(cur_offset *uint64) {
 
 func (ewf_file *EWF_file) ParseSegment() {
 
-	var Sections sections.Sections
+	var ewf_sections Sections
 
 	//var m runtime.MemStats
 	//  var data interface{}
@@ -69,23 +67,34 @@ func (ewf_file *EWF_file) ParseSegment() {
 	cur_offset := EWF_Header_s
 	for cur_offset < int64(ewf_file.Size) {
 		//   parsing section headers
-		var section sections.Section = new(sections.Section)
+		var section *Section = new(Section)
 
 		buf = make([]byte, EWF_Section_Header_s)
 		ewf_file.File.ReadAt(buf, cur_offset) //read section header
 
-		var s_descriptor *sections.Section_Descriptor = new(sections.Section_Descriptor)
+		var s_descriptor *Section_Descriptor = new(Section_Descriptor)
 		utils.Unmarshal(buf, s_descriptor)
 
 		section.Descriptor = s_descriptor
+		section.SetType()
+
+		buf = make([]byte, s_descriptor.SectionSize-EWF_Section_Header_s)
+		ewf_file.File.ReadAt(buf, cur_offset+int64(EWF_Section_Header_s)) //read section body
+		section.ParseBody(buf)
+
+		ewf_sections = append(ewf_sections, *section)
 
 		cur_offset = s_descriptor.NextSectionOffs
 
-		Sections = append(Sections, section)
+		fmt.Printf("%x %s\n", cur_offset, section.Type)
+		if section.Type == "done" {
+			break
+		}
+
 	}
+	ewf_file.Sections = &ewf_sections
 	/*
-		Sections[i] = new(sections.Section) //create section
-		Sections[i].ParseHeader(buf)
+
 		Sections[i].Dispatch() //object factory section body creation
 		if Sections[i].Type == "next" {
 
