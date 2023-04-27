@@ -1,29 +1,14 @@
-package sections
+package ewf
 
 import (
-	"bytes"
-	"fmt"
-	"hash/adler32"
-	"reflect"
-	"time"
-
-	"github.com/aarsakian/EWF_Reader/ewf/sections/data"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/digest"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/disk"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/done"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/hash"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/header2"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/next"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/sectors"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/table2"
-	"github.com/aarsakian/EWF_Reader/ewf/sections/volume"
+	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type Sections []Section
 
 type Body interface {
-	Parse(*bytes.Reader)
+	Parse([]byte)
 	GetAttr(string) interface{}
 }
 
@@ -47,7 +32,7 @@ type Section_Descriptor struct {
 	//after header of segment a section starts
 	//size 76 bytes
 	Header          [16]uint8
-	NextSectionOffs uint64 //from the start of the segment
+	NextSectionOffs int64 //from the start of the segment
 	SectionSize     uint64
 	Padding         [40]uint8
 	Checksum        uint32
@@ -57,17 +42,42 @@ func (section *Section) GetAttr(val string) interface{} {
 	return section.body.GetAttr(val)
 }
 
+/*
 func (section *Section) ParseHeader(buf *bytes.Reader) {
 	section.Header.Parse(buf) //parse header attributes
 	section.BodyOffset = section.SHeader.NextSectionOffs
 
 }
-
-func (section *Section) ParseBody(buf *bytes.Reader) {
-	if section.Type != "sectors" {
-		section.body.Parse(buf)
-
+*/
+func (section *Section) ParseBody(buf []byte) {
+	switch section.Type {
+	case "header2":
+		section.body = new(sections.EWF_Header2_Section)
+	case "header":
+		section.body = new(sections.EWF_Header_Section)
+	case "disk":
+		section.body = new(sections.EWF_Disk_Section)
+	case "sectors":
+		section.body = new(sections.EWF_Sectors_Section)
+	case "table2":
+		section.body = new(sections.EWF_Table2_Section)
+	case "table":
+		section.body = new(sections.EWF_Table_Section)
+	case "next":
+		section.body = new(sections.EWF_Next_Section)
+	case "data":
+		section.body = new(sections.EWF_Data_Section)
+	case "volume":
+		section.body = new(sections.EWF_Volume_Section)
+	case "Done":
+		section.body = new(sections.EWF_Done_Section)
+	case "hash":
+		section.body = new(sections.EWF_Hash_Section)
+	case "digest":
+		section.body = new(sections.EWF_Digest_Section)
 	}
+
+	section.body.Parse(buf)
 
 	/* if Sections[i].Type == "table2" || Sections[i].Type == "table" {
 	       Sections[i].PC.Parse(buf)
@@ -82,38 +92,8 @@ func (section *Section) ParseBody(buf *bytes.Reader) {
 	   }*/
 }
 
-func (section *Section) Dispatch() {
+/*
 
-	section.findType()
-	switch section.Type {
-	case "header2":
-		section.body = new(header2.EWF_Header2_Section)
-	case "header":
-		section.body = new(header2.EWF_Header_Section)
-	case "disk":
-		section.body = new(disk.EWF_Disk_Section)
-	case "sectors":
-		section.body = new(sectors.EWF_Sectors_Section)
-	case "table2":
-		section.body = new(table2.EWF_Table2_Section)
-	case "table":
-		section.body = new(table2.EWF_Table_Section)
-	case "next":
-		section.body = new(next.EWF_Next_Section)
-	case "data":
-		section.body = new(data.EWF_Data_Section)
-	case "volume":
-		section.body = new(volume.EWF_Volume_Section)
-	case "Done":
-		section.body = new(done.EWF_Done_Section)
-	case "hash":
-		section.body = new(hash.EWF_Hash_Section)
-	case "digest":
-		section.body = new(digest.EWF_Digest_Section)
-	}
-	fmt.Println("SECTION ", section.Type)
-
-}
 
 func (section_header *Section_Header) Parse(buf *bytes.Reader) {
 
@@ -136,7 +116,8 @@ func (section_header *Section_Header) Verify(datar *bytes.Reader) bool {
 	return section_header.Checksum == adler32.Checksum(buf[:72])
 
 }
+*/
 
-func (section *Section) findType() {
-	section.Type = utils.Stringify(section.SHeader.Header[:])
+func (section *Section) SetType() {
+	section.Type = utils.Stringify(section.Descriptor.Header[:])
 }
