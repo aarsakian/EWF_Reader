@@ -1,4 +1,4 @@
-package header2
+package sections
 
 import (
 	"bytes"
@@ -57,17 +57,16 @@ type EWF_Header2_Section struct {
 	ext           string    "Extents"
 }
 
-func (ewf_header_section *EWF_Header_Section) Parse(buf *bytes.Reader) {
+func (ewf_header_section *EWF_Header_Section) Parse(buf []byte) {
 
 }
 
-func (ewf_h2_section *EWF_Header2_Section) Parse(buf *bytes.Reader) {
+func (ewf_h2_section *EWF_Header2_Section) Parse(buf []byte) {
 	//0x09 tab 0x0a new line delimiter
 	//function to parse header2 section attributes
 	//to do take into account endianess
-	val := make([]byte, buf.Len())
-	buf.Read(val)
-	val = utils.Decompress(val)
+
+	val := utils.Decompress(buf)
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
 	line_del, _ := hex.DecodeString("0a")

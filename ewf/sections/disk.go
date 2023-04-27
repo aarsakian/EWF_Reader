@@ -1,17 +1,13 @@
-
-package disk
-
-import "bytes"
+package sections
 
 type EWF_Disk_Section struct {
-    body []byte
-}
-func (ewf_disk_section *EWF_Disk_Section) GetAttr(string) (interface{}) {
-    return &ewf_disk_section.body
+	body []byte
 }
 
-
-func (ewf_disk_section *EWF_Disk_Section) Parse(buf *bytes.Reader){
-    
+func (ewf_disk_section *EWF_Disk_Section) GetAttr(string) interface{} {
+	return &ewf_disk_section.body
 }
 
+func (ewf_disk_section *EWF_Disk_Section) Parse(buf []byte) {
+
+}

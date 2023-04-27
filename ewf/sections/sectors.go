@@ -1,7 +1,6 @@
-package sectors
+package sections
 
 import (
-	"bytes"
 
 	//  "fmt"
 
@@ -10,11 +9,11 @@ import (
 )
 
 type EWF_Sectors_Section struct {
-	data []byte
+	body []byte
 }
 
 func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) interface{} {
-	return ewf_sectors_section.data[:]
+	return ewf_sectors_section.body[:]
 }
 
 /*func (ewf_sectors_section *EWF_Sectors_Section) Verify() bool {
@@ -22,10 +21,9 @@ func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) interface{} {
    return ewf_sectors_section.checksum == adler32.Checksum(ewf_sectors_section.data)
 }*/
 
-func (ewf_sectors_section *EWF_Sectors_Section) Parse(buf *bytes.Reader) {
+func (ewf_sectors_section *EWF_Sectors_Section) Parse(buf []byte) {
 
-	ewf_sectors_section.data = make([]byte, buf.Len())
-	utils.Parse(buf, &ewf_sectors_section.data)
+	utils.Unmarshal(buf, ewf_sectors_section.body)
 
 	//  fmt.Println("ERR FREE",ewf_sectors_section.Verify())
 }

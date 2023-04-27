@@ -1,7 +1,6 @@
-package hash
+package sections
 
 import (
-	"bytes"
 	"reflect"
 	"time"
 
@@ -16,16 +15,16 @@ type EWF_Hash_Section struct {
 	Checksum  uint32 //adler32
 }
 
-func (hash_section *EWF_Hash_Section) Parse(r *bytes.Reader) {
+func (hash_section *EWF_Hash_Section) Parse(buf []byte) {
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
 
-	s := reflect.ValueOf(hash_section).Elem()
+	/*s := reflect.ValueOf(hash_section).Elem()
 	for i := 0; i < s.NumField(); i++ {
 		//parse struct attributes
 		utils.Parse(r, s.Field(i).Addr().Interface())
 
-	}
+	}*/
 }
 
 func (hash_section *EWF_Hash_Section) GetAttr(attr string) interface{} {

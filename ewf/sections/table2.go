@@ -1,4 +1,4 @@
-package table2
+package sections
 
 import (
 	"bytes"
@@ -27,18 +27,18 @@ type EWF_Table_Section_Data struct {
 
 //resides right after table section
 type EWF_Table2_Section struct {
-	table_section EWF_Table_Section
+	Table_section EWF_Table_Section
 }
 
 //table section  identifier
 type EWF_Table_Section struct {
-	table_header  EWF_Table_Section_Header
+	Table_header  *EWF_Table_Section_Header
 	Table_entries []EWF_Table_Section_Entry
-	table_footer  EWF_Table_Section_Footer
+	Table_footer  *EWF_Table_Section_Footer
 }
 
 type EWF_Table_Section_Header struct { //24 bytes
-	nofEntries uint32    "Number of Entries 0x01"
+	NofEntries uint32    "Number of Entries 0x01"
 	Padding    [16]uint8 "contains 0x00"
 	Checksum   [4]uint8  "Adler32"
 }
@@ -52,63 +52,62 @@ type EWF_Table_Section_Header_EnCase struct { //24bytes
 	Checksum        [4]uint8 "Adler32"
 }
 
-func (table_header *EWF_Table_Section_Header) Parse(buf *bytes.Reader) {
+func (table_header *EWF_Table_Section_Header) Parse(buf []byte) {
 
 	//parse struct attributes
 
-	utils.Parse(buf, &table_header.nofEntries)
+	/*utils.Parse(buf, &table_header.nofEntries)
 	utils.Parse(buf, &table_header.Padding)
-	utils.Parse(buf, &table_header.Checksum)
+	utils.Parse(buf, &table_header.Checksum)*/
 
 }
 
-func (table_entry *EWF_Table_Section_Entry) Parse(buf *bytes.Reader) {
-	var b *bytes.Reader
+func (table_entry *EWF_Table_Section_Entry) Parse(buf []byte) {
 
-	val := make([]byte, int64(buf.Len()))
-
-	buf.Read(val)
-	//parse struct attributes
-	table_entry.IsCompressed = val[3] << 1 & 1
-	val[3] &= 0x7F //exlude MSB
-
-	b = bytes.NewReader(val)
-
-	utils.Parse(b, &table_entry.ChunkDataOffset)
+	table_entry.IsCompressed = buf[3] << 1 & 1
+	buf[3] &= 0x7F //exlude MSB
+	utils.Unmarshal(buf, table_entry)
 }
 
-func (table_footer *EWF_Table_Section_Footer) Parse(buf *bytes.Reader) {
+func (table_footer *EWF_Table_Section_Footer) Parse(buf []byte) {
 
 	//parse struct attributes
 
-	utils.Parse(buf, &table_footer.Checksum)
+	utils.Unmarshal(buf, table_footer)
 
 }
 
-func (ewf_table_section *EWF_Table_Section) Parse(buf *bytes.Reader) {
+func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
-	val := make([]byte, int64(buf.Len()))
+	var table_header *EWF_Table_Section_Header = new(EWF_Table_Section_Header)
+	utils.Unmarshal(buf[:24], table_header)
 
-	buf.Read(val)
+	ewf_table_section.Table_header = table_header
 
-	ewf_table_section.table_header.Parse(bytes.NewReader(val[0:24]))
-	ewf_table_section.table_footer.Parse(bytes.NewReader(val[len(val)-4 : len(val)]))
-	val = val[24 : len(val)-4]
+	var table_footer *EWF_Table_Section_Footer = new(EWF_Table_Section_Footer)
+	utils.Unmarshal(buf[len(buf)-4:], table_footer)
+	ewf_table_section.Table_footer = table_footer
+	buf = buf[24 : len(buf)-4]
 	k := 0
-	ewf_table_section.Table_entries = make([]EWF_Table_Section_Entry, ewf_table_section.table_header.nofEntries)
-	for i := uint32(0); i < ewf_table_section.table_header.nofEntries; i += 1 {
 
-		ewf_table_section.Table_entries[i].Parse(bytes.NewReader(val[0+k : 4+k]))
+	var ewf_table_section_entries []EWF_Table_Section_Entry
+	for i := uint32(0); i < ewf_table_section.Table_header.NofEntries; i += 1 {
+		var ewf_table_section_entry *EWF_Table_Section_Entry = new(EWF_Table_Section_Entry)
+		utils.Unmarshal(buf[0+k:4+k], ewf_table_section_entry)
+
+		ewf_table_section_entries = append(ewf_table_section_entries, *ewf_table_section_entry)
+
 		//  fmt.Println("EFW in by",i,
 		//       ewf_table_section.table_entries[i].IsCompressed,ewf_table_section.table_entries[i].ChunkDataOffset)
 		k += 4
 
 	}
+	ewf_table_section.Table_entries = ewf_table_section_entries
 
 }
 
-func (ewf_table2_section *EWF_Table2_Section) Parse(buf *bytes.Reader) {
+func (ewf_table2_section *EWF_Table2_Section) Parse(buf []byte) {
 
 }
 
@@ -117,7 +116,8 @@ func (ewf_table2_section *EWF_Table2_Section) Collect([]byte, uint64) {
 }
 
 func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_offs uint64) {
-	fmt.Println("NODF entries", len(ewf_table_section.Table_entries), ewf_table_section.table_header.nofEntries)
+	fmt.Println("NODF entries",
+		len(ewf_table_section.Table_entries), ewf_table_section.Table_header.NofEntries)
 	zlib_header := []byte{72, 13}
 	var data []byte
 	for idx, entry := range ewf_table_section.Table_entries[:len(ewf_table_section.Table_entries)-1] {

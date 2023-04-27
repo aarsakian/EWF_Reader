@@ -1,7 +1,6 @@
-package digest
+package sections
 
 import (
-	"bytes"
 	"reflect"
 	"time"
 
@@ -17,16 +16,11 @@ type EWF_Digest_Section struct {
 	Checksum  uint32    "Adler-32 of all the previous data within the additional digest section"
 }
 
-func (digest_section *EWF_Digest_Section) Parse(r *bytes.Reader) {
+func (digest_section *EWF_Digest_Section) Parse(buf []byte) {
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
 
-	s := reflect.ValueOf(digest_section).Elem()
-	for i := 0; i < s.NumField(); i++ {
-		//parse struct attributes
-		utils.Parse(r, s.Field(i).Addr().Interface())
-
-	}
+	utils.Unmarshal(buf, digest_section)
 }
 
 func (digest_section *EWF_Digest_Section) GetAttr(attr string) interface{} {
