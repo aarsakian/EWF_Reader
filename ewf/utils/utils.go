@@ -130,7 +130,7 @@ func Append(src []uint32, data []uint32) []uint32 {
 	return src
 }
 
-func SetTime(attr []byte) time.Time {
+func GetTime(attr []byte) time.Time {
 	//  fmt.Println("TIME LEN",string(attr),attr,len(attr))
 	timestamp := string(bytes.Join(bytes.Split(attr, []byte{00}), []byte{})) //crazy since original byte seq not in ASCII
 	if len(attr) == 21 {
@@ -193,4 +193,65 @@ func Stringify(val []uint8) string {
 
 	}
 	return str
+}
+
+func ReadEndian(barray []byte) (val interface{}) {
+	//conversion function
+	//fmt.Println("before conversion----------------",barray)
+	//fmt.Printf("len%d ",len(barray))
+
+	switch len(barray) {
+	case 8:
+		var vale uint64
+		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
+		val = vale
+	case 6:
+
+		var vale uint32
+		buf := make([]byte, 6)
+		binary.Read(bytes.NewBuffer(barray[:4]), binary.LittleEndian, &vale)
+		var vale1 uint16
+		binary.Read(bytes.NewBuffer(barray[4:]), binary.LittleEndian, &vale1)
+		binary.LittleEndian.PutUint32(buf[:4], vale)
+		binary.LittleEndian.PutUint16(buf[4:], vale1)
+		val, _ = binary.ReadUvarint(bytes.NewBuffer(buf))
+
+	case 4:
+		var vale uint32
+		//   fmt.Println("barray",barray)
+		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
+		val = vale
+		val = vale
+	case 2:
+
+		var vale uint16
+
+		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
+		//   fmt.Println("after conversion vale----------------",barray,vale)
+		val = vale
+
+	case 1:
+
+		var vale uint8
+
+		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
+		//      fmt.Println("after conversion vale----------------",barray,vale)
+		val = vale
+
+	default: //best it would be nil
+		var vale uint64
+
+		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
+		val = vale
+	}
+	return val
+}
+
+func ToMap[K comparable, T any](keys []K, vals []T) map[K]T {
+	m := map[K]T{}
+
+	for idx, key := range keys {
+		m[key] = vals[idx]
+	}
+	return m
 }
