@@ -1,6 +1,10 @@
 package sections
 
-import "github.com/aarsakian/EWF_Reader/ewf/utils"
+import (
+	"fmt"
+
+	"github.com/aarsakian/EWF_Reader/ewf/utils"
+)
 
 type EWF_Volume_Section struct { //0-94
 	Ukwnown           [4]uint8
@@ -18,7 +22,7 @@ type EWF_Volume_Section struct { //0-94
 type Volume_Data struct { //1052
 	MediaType         uint8
 	Unknown1          [3]uint8
-	ChunkCount        uint32
+	ChunkCount        uint32 "Within all segment files"
 	NofSectorPerChunk uint32 "Number of Sectors per Chunk default 64"
 	NofBytesPerSector uint32 "default 512"
 	NofSectors        uint64 "Number of Sectors within all segment files"
@@ -45,8 +49,14 @@ func (ewf_volume_section *EWF_Volume_Section) Parse(buf []byte) {
 	utils.Unmarshal(buf[:94], ewf_volume_section)
 	ewf_volume_section.Vol_Data = vol_data
 
+	ewf_volume_section.Print()
 }
 
 func (ewf_volume_section *EWF_Volume_Section) GetAttr(string) interface{} {
 	return ""
+}
+
+func (ewf_volume_section EWF_Volume_Section) Print() {
+	fmt.Printf("chunks %d sectors per chunck %d", ewf_volume_section.ChunkCount,
+		ewf_volume_section.NofSectorPerChunk)
 }
