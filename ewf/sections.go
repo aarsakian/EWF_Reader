@@ -69,7 +69,7 @@ func (section *Section) ParseBody(buf []byte) {
 		section.body = new(sections.EWF_Data_Section)
 	case "volume":
 		section.body = new(sections.EWF_Volume_Section)
-	case "Done":
+	case "done":
 		section.body = new(sections.EWF_Done_Section)
 	case "hash":
 		section.body = new(sections.EWF_Hash_Section)
