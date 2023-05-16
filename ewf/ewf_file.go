@@ -65,6 +65,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 	//var sectors_offs uint64
 	var buf []byte
 	cur_offset := EWF_Header_s
+	var prev_section *Section
 	for cur_offset < int64(ewf_file.Size) {
 		//   parsing section headers
 		var section *Section = new(Section)
@@ -76,20 +77,30 @@ func (ewf_file *EWF_file) ParseSegment() {
 		utils.Unmarshal(buf, s_descriptor)
 
 		section.Descriptor = s_descriptor
-		section.SetType()
+
+		section.Type = s_descriptor.GetType()
 
 		buf = make([]byte, s_descriptor.SectionSize-EWF_Section_Header_s)
 		ewf_file.File.ReadAt(buf, cur_offset+int64(EWF_Section_Header_s)) //read section body
 		section.ParseBody(buf)
+		if prev_section != nil {
 
-		ewf_sections = append(ewf_sections, *section)
+			prev_section.next = section
+			section.prev = prev_section
+
+		}
 
 		cur_offset = s_descriptor.NextSectionOffs
 
 		fmt.Printf("%x %s\n", cur_offset, section.Type)
 		if section.Type == "done" {
+			ewf_sections.tail = section
 			break
+		} else if section.Type == "header" {
+			ewf_sections.head = section
 		}
+
+		prev_section = section
 
 	}
 	ewf_file.Sections = &ewf_sections
