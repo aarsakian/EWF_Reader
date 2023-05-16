@@ -5,7 +5,10 @@ import (
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
-type Sections []Section
+type Sections struct {
+	head *Section
+	tail *Section
+}
 
 type Body interface {
 	Parse([]byte)
@@ -26,6 +29,8 @@ type Section struct {
 	Type       string
 	BodyOffset uint64
 	body       Body
+	next       *Section
+	prev       *Section
 }
 
 type Section_Descriptor struct {
@@ -38,7 +43,11 @@ type Section_Descriptor struct {
 	Checksum        uint32
 }
 
-func (section *Section) GetAttr(val string) interface{} {
+func (descriptor Section_Descriptor) GetType() string {
+	return utils.Stringify(descriptor.Header[:])
+}
+
+func (section *Section) GetAttr(val string) any {
 	return section.body.GetAttr(val)
 }
 
@@ -117,7 +126,3 @@ func (section_header *Section_Header) Verify(datar *bytes.Reader) bool {
 
 }
 */
-
-func (section *Section) SetType() {
-	section.Type = utils.Stringify(section.Descriptor.Header[:])
-}
