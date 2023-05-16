@@ -13,7 +13,7 @@ const Chunk_Size uint32 = 64 * 512
 
 type EWF_Table_Section_Entry struct {
 	ChunkDataOffset uint32 "MSB indicates if chunk data is (un)compressed (0)/1 offset relative to the start of the fileit is located in the preseding sectors section "
-	IsCompressed    uint8  "1 -> Compressed"
+	IsCompressed    bool   "1 -> Compressed"
 }
 
 type EWF_Table_Section_Footer struct {
@@ -54,17 +54,13 @@ type EWF_Table_Section_Header_EnCase struct { //24bytes
 
 func (table_header *EWF_Table_Section_Header) Parse(buf []byte) {
 
-	//parse struct attributes
-
-	/*utils.Parse(buf, &table_header.nofEntries)
-	utils.Parse(buf, &table_header.Padding)
-	utils.Parse(buf, &table_header.Checksum)*/
+	utils.Unmarshal(buf, table_header)
 
 }
 
 func (table_entry *EWF_Table_Section_Entry) Parse(buf []byte) {
 
-	table_entry.IsCompressed = buf[3] << 1 & 1
+	table_entry.IsCompressed = buf[3]&0x80 == 0x01
 	buf[3] &= 0x7F //exlude MSB
 	utils.Unmarshal(buf, table_entry)
 }
@@ -81,12 +77,12 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
 	var table_header *EWF_Table_Section_Header = new(EWF_Table_Section_Header)
-	utils.Unmarshal(buf[:24], table_header)
+	table_header.Parse(buf[:24])
 
 	ewf_table_section.Table_header = table_header
 
 	var table_footer *EWF_Table_Section_Footer = new(EWF_Table_Section_Footer)
-	utils.Unmarshal(buf[len(buf)-4:], table_footer)
+	table_footer.Parse(buf[len(buf)-4:])
 	ewf_table_section.Table_footer = table_footer
 	buf = buf[24 : len(buf)-4]
 	k := 0
@@ -94,7 +90,7 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 	var ewf_table_section_entries []EWF_Table_Section_Entry
 	for i := uint32(0); i < ewf_table_section.Table_header.NofEntries; i += 1 {
 		var ewf_table_section_entry *EWF_Table_Section_Entry = new(EWF_Table_Section_Entry)
-		utils.Unmarshal(buf[0+k:4+k], ewf_table_section_entry)
+		ewf_table_section_entry.Parse(buf[0+k : 4+k])
 
 		ewf_table_section_entries = append(ewf_table_section_entries, *ewf_table_section_entry)
 

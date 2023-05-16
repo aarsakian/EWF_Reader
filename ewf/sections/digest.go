@@ -10,10 +10,10 @@ import (
 )
 
 type EWF_Digest_Section struct {
-	MD5_value [16]uint8 "MD5 hash of the media data"
-	SHA1      [20]uint8 "SHA1 hash of the media data"
-	Padding   [4]uint8  "0x00"
-	Checksum  uint32    "Adler-32 of all the previous data within the additional digest section"
+	MD5      [16]uint8 "MD5 hash of the media data"
+	SHA1     [20]uint8 "SHA1 hash of the media data"
+	Padding  [4]uint8  "0x00"
+	Checksum uint32    "Adler-32 of all the previous data within the additional digest section"
 }
 
 func (digest_section *EWF_Digest_Section) Parse(buf []byte) {

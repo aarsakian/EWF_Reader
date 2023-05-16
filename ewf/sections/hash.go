@@ -10,9 +10,9 @@ import (
 )
 
 type EWF_Hash_Section struct {
-	MD5_value [16]uint8
-	Unknown   uint8
-	Checksum  uint32 //adler32
+	MD5      [16]uint8
+	Unknown  uint8
+	Checksum uint32 //adler32
 }
 
 func (hash_section *EWF_Hash_Section) Parse(buf []byte) {

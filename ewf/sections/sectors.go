@@ -27,8 +27,8 @@ func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) interface{} {
 }*/
 
 func (ewf_sectors_section *EWF_Sectors_Section) Parse(buf []byte) {
-
-	utils.Unmarshal(buf, ewf_sectors_section)
+	deflatedBuf := utils.Decompress(buf)
+	utils.Unmarshal(deflatedBuf, ewf_sectors_section)
 
 	//  fmt.Println("ERR FREE",ewf_sectors_section.Verify())
 }

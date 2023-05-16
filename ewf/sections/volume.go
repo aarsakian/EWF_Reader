@@ -45,8 +45,8 @@ type Volume_Data struct { //1052
 
 func (ewf_volume_section *EWF_Volume_Section) Parse(buf []byte) {
 	var vol_data *Volume_Data = new(Volume_Data)
-	utils.Unmarshal(buf[94:], vol_data) // start after ewf_volume_section
-	utils.Unmarshal(buf[:94], ewf_volume_section)
+	utils.Unmarshal(buf, vol_data) // start after ewf_volume_section
+	//	utils.Unmarshal(buf[:94], ewf_volume_section)
 	ewf_volume_section.Vol_Data = vol_data
 
 	ewf_volume_section.Print()
@@ -57,6 +57,6 @@ func (ewf_volume_section *EWF_Volume_Section) GetAttr(string) interface{} {
 }
 
 func (ewf_volume_section EWF_Volume_Section) Print() {
-	fmt.Printf("chunks %d sectors per chunck %d", ewf_volume_section.ChunkCount,
-		ewf_volume_section.NofSectorPerChunk)
+	fmt.Printf("chunks %d sectors per chunck %d\n", ewf_volume_section.Vol_Data.ChunkCount,
+		ewf_volume_section.Vol_Data.NofSectorPerChunk)
 }
