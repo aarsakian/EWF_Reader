@@ -149,38 +149,93 @@ func GetTime(attr []byte) time.Time {
 
 }
 
+/*CMF|FLG  0x78|  (FLG|CM)
+CM 0-3 Compression method  8=deflate
+CINFO 4-7 Compression info 7=32K window size only when CM=8
+FLG 0-4 FCHECK  = CMF*256 + FLG multiple of 31 = 120*256==x mod 31 => x=156
+5 FDICT 1=> DICT follows (DICT is the Adler-32 checksum  of this sequence of bytes )
+6-7 FLEVEL compression level 0-3
+9c = 1001 1100
+FLEVEL 10
+FDICT 0
+FCHECK 12
+ADLER32  algorithm is a 32-bit extension and improvement of the Fletcher algorithm,
+A compliant decompressor must check CMF, FLG, and ADLER32,
+*/
+
 func Decompress(val []byte) []byte {
-	defer TimeTrack(time.Now(), "decompressing")
-	b := bytes.NewReader(val)
-	r, err := zlib.NewReader(b)
-	var buf bytes.Buffer // buffer needs no initilization pointer
+	//	defer TimeTrack(time.Now(), "decompressing")
+	var r io.ReadCloser
+	var b *bytes.Reader
+	var bytesRead, lent int64
+	var dst bytes.Buffer
+	var err error
+
+	fmt.Println(len(val))
+
+	b = bytes.NewReader(val)
+
+	for {
+		r, err = zlib.NewReader(b)
+		if err != nil {
+			if err == io.EOF {
+				//	fmt.Println(err)
+				break
+			}
+			continue
+			//log.Fatal(err)
+		}
+
+		defer r.Close()
+
+		lent, err = dst.ReadFrom(r)
+		bytesRead += lent
+		//	fmt.Println(":EM", bytesRead, len(val), int(bytesRead) > len(val))
+		if err != nil {
+			//fmt.Println(err)
+			//	log.Fatal(err)
+			continue
+		}
+
+		if lent <= 32768 { //break input buffer was consummed
+			break
+		}
+	}
+
+	//var buf bytes.Buffer // buffer needs no initilization pointer
 	if err != nil {
 		panic(err)
 	}
 
-	io.Copy(&buf, r)
-	//   fmt.Printf("data  %d \n", len(buf.Bytes()))
-	r.Close()
+	//io.Copy(&buf, r)
 
-	return buf.Bytes()
+	if err != nil {
+		panic(err)
+	}
+
+	//   fmt.Printf("data  %d \n", len(buf.Bytes()))
+
+	return dst.Bytes()
 }
 
 func DecompressF(val []byte) []byte {
 	var m runtime.MemStats
 	defer TimeTrack(time.Now(), "decompressing")
 	fmt.Printf("Decompressing %x:\n", val[0:5])
-	b := bytes.NewReader(val)
-	r := flate.NewReader(b)
-	var buf bytes.Buffer // buffer needs no initilization pointer
+	buf := bytes.NewReader(val)
+	r := flate.NewReader(buf)
 
-	io.Copy(&buf, r)
+	p, err := io.ReadAll(r)
 
+	if err != nil {
+		panic(err)
+	}
 	r.Close()
 	runtime.ReadMemStats(&m)
 	fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d\n", m.HeapSys, m.HeapAlloc,
 		m.HeapIdle, m.HeapReleased)
 
-	return buf.Bytes()
+	return p
 }
 
 func Stringify(val []uint8) string {
