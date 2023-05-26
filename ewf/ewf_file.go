@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
@@ -82,7 +83,11 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 		buf = make([]byte, s_descriptor.SectionSize-EWF_Section_Header_s)
 		ewf_file.File.ReadAt(buf, cur_offset+int64(EWF_Section_Header_s)) //read section body
-		section.ParseBody(buf)
+		if section.Type != "sectors" {
+			section.ParseBody(buf)
+
+		}
+
 		if prev_section != nil {
 
 			prev_section.next = section
@@ -93,7 +98,25 @@ func (ewf_file *EWF_file) ParseSegment() {
 		cur_offset = s_descriptor.NextSectionOffs
 
 		fmt.Printf("%x %s\n", cur_offset, section.Type)
-		if section.Type == "done" {
+		if section.Type == "table" {
+			table_entries := section.GetAttr("Table_entries").(sections.Table_Entries)
+			//	datachunks := section.prev.GetAttr("DataChucks").(sections.DataChucks)
+			for idx, table_entry := range table_entries {
+				if idx+1 == len(table_entries) { // last entry:
+					buf = make([]byte, uint64(cur_offset)-uint64(table_entry.ChunkDataOffset))
+				} else {
+					buf = make([]byte, uint64(table_entries[idx+1].ChunkDataOffset)-uint64(table_entry.ChunkDataOffset))
+				}
+
+				ewf_file.File.ReadAt(buf, int64(table_entry.ChunkDataOffset))
+				if table_entry.IsCompressed {
+
+					decompressedData := utils.Decompress(buf)
+					section.prev.ParseBody(decompressedData)
+				}
+
+			}
+		} else if section.Type == "done" {
 			ewf_sections.tail = section
 			break
 		} else if section.Type == "header" {
