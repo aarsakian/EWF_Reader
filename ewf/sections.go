@@ -52,9 +52,9 @@ func (section *Section) GetAttr(val string) any {
 }
 
 /*
-func (section *Section) ParseHeader(buf *bytes.Reader) {
-	section.Header.Parse(buf) //parse header attributes
-	section.BodyOffset = section.SHeader.NextSectionOffs
+	func (section *Section) ParseHeader(buf *bytes.Reader) {
+		section.Header.Parse(buf) //parse header attributes
+		section.BodyOffset = section.SHeader.NextSectionOffs
 
 }
 */
