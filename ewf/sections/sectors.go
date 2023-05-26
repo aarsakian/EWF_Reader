@@ -1,20 +1,17 @@
 package sections
 
-import (
+//  "fmt"
 
-	//  "fmt"
+//     "hash/adler32"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
-	//     "hash/adler32"
-)
+type DataChucks []DataChuck
 
 type DataChuck struct {
-	data     []byte
-	Checksum [4]uint8 //adler-32
+	data []byte
 }
 
 type EWF_Sectors_Section struct {
-	DataChucks []DataChuck
+	DataChucks DataChucks
 }
 
 func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) interface{} {
@@ -27,8 +24,6 @@ func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) interface{} {
 }*/
 
 func (ewf_sectors_section *EWF_Sectors_Section) Parse(buf []byte) {
-	deflatedBuf := utils.Decompress(buf)
-	utils.Unmarshal(deflatedBuf, ewf_sectors_section)
 
-	//  fmt.Println("ERR FREE",ewf_sectors_section.Verify())
+	ewf_sectors_section.DataChucks = append(ewf_sectors_section.DataChucks, DataChuck{data: buf})
 }
