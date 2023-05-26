@@ -20,20 +20,22 @@ type EWF_Table_Section_Footer struct {
 	Checksum [4]uint8
 }
 
-//not used in EnCase
+// not used in EnCase
 type EWF_Table_Section_Data struct {
 	Data []byte "chunk data compressed under deflate as well as its Checksum"
 }
 
-//resides right after table section
+// resides right after table section
 type EWF_Table2_Section struct {
 	Table_section EWF_Table_Section
 }
 
-//table section  identifier
+type Table_Entries []EWF_Table_Section_Entry
+
+// table section  identifier
 type EWF_Table_Section struct {
 	Table_header  *EWF_Table_Section_Header
-	Table_entries []EWF_Table_Section_Entry
+	Table_entries Table_Entries
 	Table_footer  *EWF_Table_Section_Footer
 }
 
@@ -43,7 +45,7 @@ type EWF_Table_Section_Header struct { //24 bytes
 	Checksum   [4]uint8  "Adler32"
 }
 
-//EnCase 6-7
+// EnCase 6-7
 type EWF_Table_Section_Header_EnCase struct { //24bytes
 	nofEntries      uint32   "Number of Entries 0x01"
 	Padding1        [4]uint8 "contains 0x00"
@@ -60,9 +62,10 @@ func (table_header *EWF_Table_Section_Header) Parse(buf []byte) {
 
 func (table_entry *EWF_Table_Section_Entry) Parse(buf []byte) {
 
-	table_entry.IsCompressed = buf[3]&0x80 == 0x01
+	IsCompressed := buf[3]&0x80 == 0x80
 	buf[3] &= 0x7F //exlude MSB
 	utils.Unmarshal(buf, table_entry)
+	table_entry.IsCompressed = IsCompressed
 }
 
 func (table_footer *EWF_Table_Section_Footer) Parse(buf []byte) {
@@ -94,8 +97,6 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 
 		ewf_table_section_entries = append(ewf_table_section_entries, *ewf_table_section_entry)
 
-		//  fmt.Println("EFW in by",i,
-		//       ewf_table_section.table_entries[i].IsCompressed,ewf_table_section.table_entries[i].ChunkDataOffset)
 		k += 4
 
 	}
@@ -146,21 +147,21 @@ func (entry *EWF_Table_Section_Entry) GetAttr(attr string) interface{} {
 func (ewf_table_section *EWF_Table_Section) GetAttr(attr string) interface{} {
 	s := reflect.ValueOf(ewf_table_section).Elem() //retrieve since it's a pointer
 
-	sub_s := s.FieldByName(attr)
+	return s.FieldByName(attr).Interface()
 
-	if attr == "Table_entries" {
-		data_offsets := make([]uint32, sub_s.Len())
-		for entry_number := 0; entry_number < sub_s.Len(); entry_number++ {
-			s_inner := sub_s.Index(entry_number).Addr()
-			// get_attr_f := s_inner.MethodByName("GetAttr")
-			// fmt.Println("OFFSET",s_inner,get_attr_f.Call( [] reflect.Value{reflect.ValueOf("ChunkDataOffset")}))
+	/*	if attr == "Table_entries" {
+			data_offsets := make([]uint32, sub_s.Len())
+			for entry_number := 0; entry_number < sub_s.Len(); entry_number++ {
+				s_inner := sub_s.Index(entry_number).Addr()
+				// get_attr_f := s_inner.MethodByName("GetAttr")
+				// fmt.Println("OFFSET",s_inner,get_attr_f.Call( [] reflect.Value{reflect.ValueOf("ChunkDataOffset")}))
 
-			data_offsets[entry_number] = s_inner.Elem().FieldByName("ChunkDataOffset").Interface().(uint32)
-		}
-		return data_offsets
-	} else {
-		return ""
-	}
+				data_offsets[entry_number] = s_inner.Elem().FieldByName("ChunkDataOffset").Interface().(uint32)
+			}
+			return data_offsets
+		} else {
+			return ""
+		}*/
 
 }
 
