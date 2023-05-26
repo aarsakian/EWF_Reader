@@ -171,35 +171,27 @@ func Decompress(val []byte) []byte {
 	var dst bytes.Buffer
 	var err error
 
-	fmt.Println(len(val))
-
 	b = bytes.NewReader(val)
 
-	for {
-		r, err = zlib.NewReader(b)
-		if err != nil {
-			if err == io.EOF {
-				//	fmt.Println(err)
-				break
-			}
-			continue
-			//log.Fatal(err)
+	r, err = zlib.NewReader(b)
+	if err != nil {
+		if err == io.EOF {
+			fmt.Println(err)
+
 		}
 
-		defer r.Close()
+		log.Fatal(err)
+	}
 
-		lent, err = dst.ReadFrom(r)
-		bytesRead += lent
-		//	fmt.Println(":EM", bytesRead, len(val), int(bytesRead) > len(val))
-		if err != nil {
-			//fmt.Println(err)
-			//	log.Fatal(err)
-			continue
-		}
+	defer r.Close()
 
-		if lent <= 32768 { //break input buffer was consummed
-			break
-		}
+	lent, err = dst.ReadFrom(r)
+	bytesRead += lent
+	//	fmt.Println(":EM", bytesRead, len(val), int(bytesRead) > len(val))
+	if err != nil {
+		//fmt.Println(err)
+		log.Fatal(err)
+
 	}
 
 	//var buf bytes.Buffer // buffer needs no initilization pointer
