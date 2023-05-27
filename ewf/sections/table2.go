@@ -12,8 +12,8 @@ import (
 const Chunk_Size uint32 = 64 * 512
 
 type EWF_Table_Section_Entry struct {
-	ChunkDataOffset uint32 "MSB indicates if chunk data is (un)compressed (0)/1 offset relative to the start of the fileit is located in the preseding sectors section "
-	IsCompressed    bool   "1 -> Compressed"
+	DataOffset   uint32 "MSB indicates if chunk data is (un)compressed (0)/1 offset relative to the start of the fileit is located in the preseding sectors section "
+	IsCompressed bool   "1 -> Compressed"
 }
 
 type EWF_Table_Section_Footer struct {
@@ -119,7 +119,7 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 	var data []byte
 	for idx, entry := range ewf_table_section.Table_entries[:len(ewf_table_section.Table_entries)-1] {
 
-		data = sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs) : entry.ChunkDataOffset-uint32(sectors_offs)+Chunk_Size]
+		data = sectors_buf[entry.DataOffset-uint32(sectors_offs) : entry.DataOffset-uint32(sectors_offs)+Chunk_Size]
 
 		if bytes.HasPrefix(data, zlib_header) {
 			utils.Decompress(data)
@@ -132,8 +132,8 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 	}
 	//last data chunk maybe less than 32K size
 	last_entry := ewf_table_section.Table_entries[len(ewf_table_section.Table_entries)-1]
-	data = sectors_buf[last_entry.ChunkDataOffset-uint32(sectors_offs) : last_entry.ChunkDataOffset-uint32(sectors_offs)+
-		uint32(len(sectors_buf))-last_entry.ChunkDataOffset-uint32(sectors_offs)]
+	data = sectors_buf[last_entry.DataOffset-uint32(sectors_offs) : last_entry.DataOffset-uint32(sectors_offs)+
+		uint32(len(sectors_buf))-last_entry.DataOffset-uint32(sectors_offs)]
 	if bytes.HasSuffix(data, zlib_header) {
 		utils.DecompressF(data)
 	}
