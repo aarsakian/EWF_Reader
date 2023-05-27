@@ -36,24 +36,19 @@ type EWF_Header struct {
 	EOF           uint16
 }
 
-func (ewf_file *EWF_file) Verify() {
-
-}
-
-func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets []int) []int {
-
-	section := ewf_file.Sections.head
-	for section != nil {
-		if section.Type != "table" {
-			section = section.next
-			continue
-		}
-		break
-
+func (ewf_file *EWF_file) GetHash() string {
+	section := ewf_file.Sections.GetSectionPtr("hash")
+	if section != nil {
+		return section.GetAttr("MD5").(string)
+	} else {
+		return "error"
 	}
 
+}
+func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets map[int]bool) map[int]bool {
+	section := ewf_file.Sections.GetSectionPtr("table")
 	for _, chunck := range section.GetAttr("Table_entries").(sections.Table_Entries) {
-		chunkOffsets = append(chunkOffsets, int(chunck.DataOffset))
+		chunkOffsets[int(chunck.DataOffset)] = chunck.IsCompressed
 	}
 	return chunkOffsets
 
@@ -169,7 +164,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 func (ewf_file *EWF_file) ReadAt(off int64, length uint64) []byte {
 	//cast to struct respecting endianess
-	defer utils.TimeTrack(time.Now(), "reading")
+	//defer utils.TimeTrack(time.Now(), "reading")
 	var err error
 	var file *os.File
 	file, err = os.Open(ewf_file.Name)
