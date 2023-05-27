@@ -19,12 +19,7 @@ func (hash_section *EWF_Hash_Section) Parse(buf []byte) {
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
 
-	/*s := reflect.ValueOf(hash_section).Elem()
-	for i := 0; i < s.NumField(); i++ {
-		//parse struct attributes
-		utils.Parse(r, s.Field(i).Addr().Interface())
-
-	}*/
+	utils.Unmarshal(buf, hash_section)
 }
 
 func (hash_section *EWF_Hash_Section) GetAttr(attr string) interface{} {

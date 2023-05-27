@@ -43,6 +43,19 @@ type Section_Descriptor struct {
 	Checksum        uint32
 }
 
+func (sections Sections) GetSectionPtr(sectionName string) *Section {
+	section := sections.head
+	for section != nil {
+		if section.Type != sectionName {
+			section = section.next
+			continue
+		}
+		return section
+
+	}
+	return nil
+}
+
 func (descriptor Section_Descriptor) GetType() string {
 	return utils.Stringify(descriptor.Header[:])
 }
