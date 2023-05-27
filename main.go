@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf"
 )
@@ -26,37 +25,6 @@ var CompressionLevel = map[uint]string{0x00: "no compression",
 
 type Decompressor interface {
 	Decompress([]byte)
-}
-
-func ParseEvidence(filenames []string) {
-
-	for _, filename := range filenames {
-		start := time.Now()
-		file, err := os.Open(filename)
-		fs, err := file.Stat() //file descriptor
-		fsize := fs.Size()
-		if err != nil {
-			fmt.Println(err)
-			panic(err)
-		}
-
-		ewf_file := new(ewf.EWF_file)
-		ewf_file.File = file
-		ewf_file.Size = fsize
-		ewf_file.ParseHeader()
-
-		ewf_file.ParseSegment()
-		ewf_file.SegmentNum = 1
-		//	fmt.Println("NPF", ewf_file.Entries[0])
-		defer file.Close()
-		elapsed := time.Since(start)
-		fmt.Printf("Parsed Evidence %s in %s\n ", filename, elapsed)
-		/*	buf := ewf_file.ReadAt(uint64(ewf_file.Entries[0]), 64*512)
-			var val interface{}
-			//    utils.Parse(buf, val)*/
-		break
-
-	}
 }
 
 func FindEvidenceFiles(path_ string) []string {
@@ -99,6 +67,8 @@ func main() {
 	}
 
 	filenames := FindEvidenceFiles(os.Args[1]) //producer
-	ParseEvidence(filenames)                   //consumer
-
+	var ewf_image ewf.EWF_Image
+	ewf_image.ParseEvidence(filenames) //consumer
+	ewf_image.GetChunckOffsets()
+	ewf_image.ReadAt(23423, 512)
 }
