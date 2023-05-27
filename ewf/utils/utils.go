@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 	// "io/ioutil"
 )
@@ -231,15 +232,59 @@ func DecompressF(val []byte) []byte {
 }
 
 func Stringify(val []uint8) string {
-	var str string
+	var strBuilder strings.Builder
+	strBuilder.Grow(len(val))
+
 	for _, elem := range val {
 		if elem == 0 {
 			break
 		}
-		str += string(elem)
+		strBuilder.WriteString(string(elem))
 
 	}
-	return str
+	return strBuilder.String()
+}
+
+func ReadEndianB(barray []byte) (val interface{}) {
+	//conversion function
+	//fmt.Println("before conversion----------------",barray)
+	//fmt.Printf("len%d ",len(barray))
+
+	switch len(barray) {
+	case 8:
+		var vale uint64
+		binary.Read(bytes.NewBuffer(barray), binary.BigEndian, &vale)
+		val = vale
+
+	case 4:
+		var vale uint32
+		//   fmt.Println("barray",barray)
+		binary.Read(bytes.NewBuffer(barray), binary.BigEndian, &vale)
+		val = vale
+		val = vale
+	case 2:
+
+		var vale uint16
+
+		binary.Read(bytes.NewBuffer(barray), binary.BigEndian, &vale)
+		//   fmt.Println("after conversion vale----------------",barray,vale)
+		val = vale
+
+	case 1:
+
+		var vale uint8
+
+		binary.Read(bytes.NewBuffer(barray), binary.BigEndian, &vale)
+		//      fmt.Println("after conversion vale----------------",barray,vale)
+		val = vale
+
+	default: //best it would be nil
+		var vale uint64
+
+		binary.Read(bytes.NewBuffer(barray), binary.BigEndian, &vale)
+		val = vale
+	}
+	return val
 }
 
 func ReadEndian(barray []byte) (val interface{}) {
