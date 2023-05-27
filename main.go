@@ -70,5 +70,10 @@ func main() {
 	var ewf_image ewf.EWF_Image
 	ewf_image.ParseEvidence(filenames) //consumer
 	ewf_image.GetChunckOffsets()
-	ewf_image.ReadAt(23423, 512)
+	ewf_image.ReadAt(48423, 512)
+	hash := ewf_image.GetHash()
+	fmt.Println(hash)
+	verified := ewf_image.Verify()
+	fmt.Println("Verified status", verified)
+
 }
