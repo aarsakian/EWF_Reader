@@ -1,10 +1,8 @@
 package ewf
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -13,12 +11,14 @@ import (
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
-const EWF_Section_Header_s uint64 = 76
-const EWF_Header_s int64 = 13
+const EWF_Section_Header_s = 76
+const EWF_Header_s = 13
 const NofSections = 200
 
+type EWF_files []EWF_file
+
 type EWF_file struct {
-	File       *os.File
+	Name       string
 	Size       int64
 	hasNext    bool
 	isLast     bool
@@ -39,12 +39,31 @@ type EWF_Header struct {
 func (ewf_file *EWF_file) Verify() {
 
 }
+
+func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets []int) []int {
+
+	section := ewf_file.Sections.head
+	for section != nil {
+		if section.Type != "table" {
+			section = section.next
+			continue
+		}
+		break
+
+	}
+
+	for _, chunck := range section.GetAttr("Table_entries").(sections.Table_Entries) {
+		chunkOffsets = append(chunkOffsets, int(chunck.DataOffset))
+	}
+	return chunkOffsets
+
+}
+
 func (ewf_file *EWF_file) ParseHeader() {
 	defer utils.TimeTrack(time.Now(), "Parsing Segment Header")
 	var ewf_header *EWF_Header = new(EWF_Header)
 
-	buf := make([]byte, EWF_Header_s)
-	ewf_file.File.ReadAt(buf, 0)
+	buf := ewf_file.ReadAt(0, EWF_Header_s)
 	utils.Unmarshal(buf, ewf_header)
 
 	sig := utils.Stringify(ewf_header.Signature[:])
@@ -65,14 +84,13 @@ func (ewf_file *EWF_file) ParseSegment() {
 	//  var data interface{}
 	//var sectors_offs uint64
 	var buf []byte
-	cur_offset := EWF_Header_s
+	cur_offset := int64(EWF_Header_s)
 	var prev_section *Section
-	for cur_offset < int64(ewf_file.Size) {
+	for cur_offset < ewf_file.Size {
 		//   parsing section headers
 		var section *Section = new(Section)
 
-		buf = make([]byte, EWF_Section_Header_s)
-		ewf_file.File.ReadAt(buf, cur_offset) //read section header
+		buf = ewf_file.ReadAt(cur_offset, EWF_Section_Header_s) //read section header
 
 		var s_descriptor *Section_Descriptor = new(Section_Descriptor)
 		utils.Unmarshal(buf, s_descriptor)
@@ -81,8 +99,8 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 		section.Type = s_descriptor.GetType()
 
-		buf = make([]byte, s_descriptor.SectionSize-EWF_Section_Header_s)
-		ewf_file.File.ReadAt(buf, cur_offset+int64(EWF_Section_Header_s)) //read section body
+		buf = ewf_file.ReadAt(cur_offset+EWF_Section_Header_s,
+			s_descriptor.SectionSize-EWF_Section_Header_s) //read section body
 		if section.Type != "sectors" {
 			section.ParseBody(buf)
 
@@ -97,26 +115,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 		cur_offset = s_descriptor.NextSectionOffs
 
-		fmt.Printf("%x %s\n", cur_offset, section.Type)
-		if section.Type == "table" {
-			table_entries := section.GetAttr("Table_entries").(sections.Table_Entries)
-			//	datachunks := section.prev.GetAttr("DataChucks").(sections.DataChucks)
-			for idx, table_entry := range table_entries {
-				if idx+1 == len(table_entries) { // last entry:
-					buf = make([]byte, uint64(cur_offset)-uint64(table_entry.ChunkDataOffset))
-				} else {
-					buf = make([]byte, uint64(table_entries[idx+1].ChunkDataOffset)-uint64(table_entry.ChunkDataOffset))
-				}
-
-				ewf_file.File.ReadAt(buf, int64(table_entry.ChunkDataOffset))
-				if table_entry.IsCompressed {
-
-					decompressedData := utils.Decompress(buf)
-					section.prev.ParseBody(decompressedData)
-				}
-
-			}
-		} else if section.Type == "done" {
+		if section.Type == "done" {
 			ewf_sections.tail = section
 			break
 		} else if section.Type == "header" {
@@ -168,36 +167,25 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 }
 
-func (ewf_file *EWF_file) ReadAt(length uint64, off uint64) *bytes.Reader {
+func (ewf_file *EWF_file) ReadAt(off int64, length uint64) []byte {
 	//cast to struct respecting endianess
 	defer utils.TimeTrack(time.Now(), "reading")
-	buff := make([]byte, length)
 	var err error
-	var n int
-	//read 100KB chunks
-	STEP := uint64(1000 * 1024)
-	rem := length
-	if length < STEP {
-		_, err := ewf_file.File.ReadAt(buff, int64(off))
-		if err == io.EOF {
-			fmt.Println("Error reading file:", err)
+	var file *os.File
+	file, err = os.Open(ewf_file.Name)
+	fs, err := file.Stat() //file descriptor
+	ewf_file.Size = fs.Size()
 
-		}
-	} else {
-		for i := uint64(0); i <= length; i += STEP {
-			if rem < STEP { //final read
-				n, err = ewf_file.File.ReadAt(buff[i:length], int64(off))
-			} else {
-				n, err = ewf_file.File.ReadAt(buff[i:i+STEP], int64(off))
-			}
-			off += uint64(n)
-			rem -= uint64(n)
-			if err != nil {
-				fmt.Println("Error reading file:", err)
-				log.Fatal(err)
-			}
-		}
+	buff := make([]byte, length)
+
+	_, err = file.ReadAt(buff, off)
+	if err == io.EOF {
+		fmt.Println("Error reading file:", err)
+
+	} else if err != nil {
+		fmt.Println(err)
+		panic(err)
 	}
 
-	return bytes.NewReader(buff)
+	return buff
 }
