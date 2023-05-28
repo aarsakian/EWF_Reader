@@ -13,17 +13,21 @@ import (
 var CHUNK_SIZE int = 32768
 
 type EWF_Image struct {
-	ewf_files    EWF_files
-	chunkOffsets sections.Table_Entries
+	ewf_files            EWF_files
+	chunkOffsets         sections.Table_Entries
+	lastChunckEndOffsets []int64
 }
 
 func (ewf_image *EWF_Image) GetChunckOffsets() {
 	var chunkOffsets sections.Table_Entries
+	var lastChunckEndOffsets []int64
 	for _, ewf_file := range ewf_image.ewf_files {
 		chunkOffsets = ewf_file.GetChunckOffsets(chunkOffsets)
+		lastChunckEndOffsets = ewf_file.GetLastChunckEndOffset()
 	}
 	//sort.Sort(chunkOffsets)
 	ewf_image.chunkOffsets = chunkOffsets
+	ewf_image.lastChunckEndOffsets = lastChunckEndOffsets
 }
 
 func (ewf_image EWF_Image) ShowInfo() {
@@ -33,24 +37,32 @@ func (ewf_image EWF_Image) ShowInfo() {
 func (ewf_image EWF_Image) VerifyHash() bool {
 
 	var data []byte
+	var to uint64
 	ewf_image.ewf_files[0].CreateHandler()
 	defer ewf_image.ewf_files[0].CloseHandler()
+	pos := 0
 	for idx, chunck := range ewf_image.chunkOffsets {
-		if idx == len(ewf_image.chunkOffsets)-1 {
-
-			break
-
-		}
 		from := uint64(chunck.DataOffset)
-		to := uint64(ewf_image.chunkOffsets[idx+1].DataOffset)
-		buf := ewf_image.ewf_files[0].ReadAt(int64(chunck.DataOffset), to-from)
-		if !chunck.IsCompressed {
-			continue
+
+		if idx == len(ewf_image.chunkOffsets)-1 || int64(chunck.DataOffset) < ewf_image.lastChunckEndOffsets[pos] &&
+			int64(ewf_image.chunkOffsets[idx+1].DataOffset) > ewf_image.lastChunckEndOffsets[pos] {
+
+			to = uint64(ewf_image.lastChunckEndOffsets[pos])
+			pos++
+		} else {
+			to = uint64(ewf_image.chunkOffsets[idx+1].DataOffset)
 		}
 
-		data = append(data, utils.Decompress(buf)...)
+		buf := ewf_image.ewf_files[0].ReadAt(int64(chunck.DataOffset), to-from)
+		if chunck.IsCompressed {
+			data = append(data, utils.Decompress(buf)...)
+		} else {
+			//	fmt.Println("appending non compressed data", len(buf))
+			data = append(data, buf...)
+		}
 
 	}
+
 	calculated_md5 := fmt.Sprintf("%x", md5.Sum(data))
 	return calculated_md5 == ewf_image.GetHash()
 

@@ -63,11 +63,21 @@ func (ewf_file EWF_file) GetVolInfo() string {
 func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) sections.Table_Entries {
 	tableSections := ewf_file.Sections.Filter("table")
 	for _, section := range tableSections {
+
 		chunkOffsets = append(chunkOffsets, section.GetAttr("Table_entries").(sections.Table_Entries)...)
 
 	}
 
 	return chunkOffsets
+}
+
+func (ewf_file EWF_file) GetLastChunckEndOffset() []int64 {
+	var lastOffsets []int64
+	tableSections := ewf_file.Sections.Filter("table")
+	for _, section := range tableSections {
+		lastOffsets = append(lastOffsets, section.Descriptor.NextSectionOffs)
+	}
+	return lastOffsets
 }
 
 func (ewf_file *EWF_file) ParseHeader() {
