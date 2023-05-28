@@ -1,6 +1,7 @@
 package ewf
 
 import (
+	"crypto/md5"
 	"fmt"
 	"hash/adler32"
 	"time"
@@ -25,9 +26,15 @@ func (ewf_image *EWF_Image) GetChunckOffsets() {
 	ewf_image.chunkOffsets = chunkOffsets
 }
 
-func (ewf_image EWF_Image) Verify() bool {
-	var deflated_data []byte
+func (ewf_image EWF_Image) ShowInfo() {
+	fmt.Println(ewf_image.ewf_files[0].GetVolInfo())
+}
 
+func (ewf_image EWF_Image) VerifyHash() bool {
+
+	var data []byte
+	ewf_image.ewf_files[0].CreateHandler()
+	defer ewf_image.ewf_files[0].CloseHandler()
 	for idx, chunck := range ewf_image.chunkOffsets {
 		if idx == len(ewf_image.chunkOffsets)-1 {
 
@@ -37,12 +44,39 @@ func (ewf_image EWF_Image) Verify() bool {
 		from := uint64(chunck.DataOffset)
 		to := uint64(ewf_image.chunkOffsets[idx+1].DataOffset)
 		buf := ewf_image.ewf_files[0].ReadAt(int64(chunck.DataOffset), to-from)
-		if chunck.IsCompressed {
-			deflated_data = utils.Decompress(buf)
+		if !chunck.IsCompressed {
+			continue
 		}
 
+		data = append(data, utils.Decompress(buf)...)
+
+	}
+	calculated_md5 := fmt.Sprintf("%x", md5.Sum(data))
+	return calculated_md5 == ewf_image.GetHash()
+
+}
+
+func (ewf_image EWF_Image) Verify() bool {
+	var deflated_data []byte
+	ewf_image.ewf_files[0].CreateHandler()
+	defer ewf_image.ewf_files[0].CloseHandler()
+	for idx, chunck := range ewf_image.chunkOffsets {
+		if idx == len(ewf_image.chunkOffsets)-1 {
+
+			break
+
+		}
+		from := uint64(chunck.DataOffset)
+		to := uint64(ewf_image.chunkOffsets[idx+1].DataOffset)
+		buf := ewf_image.ewf_files[0].ReadAt(int64(chunck.DataOffset), to-from)
+		if !chunck.IsCompressed {
+			continue
+		}
+
+		deflated_data = utils.Decompress(buf)
 		if utils.ReadEndianB(buf[len(buf)-4:]) != adler32.Checksum(deflated_data) {
-			return false
+			fmt.Println("problematic chunck", idx, chunck.DataOffset)
+
 		}
 
 	}
@@ -55,22 +89,23 @@ func (ewf_image EWF_Image) ReadAt(offset int, len uint64) []byte {
 
 	for idx, chunck := range ewf_image.chunkOffsets {
 
-		if idx*CHUNK_SIZE >= offset {
-			from := uint64(chunck.DataOffset)
-			to := uint64(ewf_image.chunkOffsets[idx+1].DataOffset)
-			buf := ewf_image.ewf_files[0].ReadAt(int64(chunck.DataOffset), to-from)
+		if idx > 0 && idx*CHUNK_SIZE >= offset {
+			ewf_image.ewf_files[0].CreateHandler()
+
+			from := uint64(ewf_image.chunkOffsets[idx-1].DataOffset)
+			to := uint64(chunck.DataOffset)
+
+			buf := ewf_image.ewf_files[0].ReadAt(int64(from), to-from)
 			if chunck.IsCompressed {
 				deflated_data = utils.Decompress(buf)
+				copy(requested_data, deflated_data[offset-(idx-1)*CHUNK_SIZE:])
+			} else {
+				copy(requested_data, buf[offset-(idx-1)*CHUNK_SIZE:])
 			}
-
+			ewf_image.ewf_files[0].CloseHandler()
 			break
 		}
 
-	}
-	if CHUNK_SIZE < offset {
-		copy(requested_data, deflated_data[offset-CHUNK_SIZE:])
-	} else {
-		copy(requested_data, deflated_data[offset:])
 	}
 
 	return requested_data
@@ -83,6 +118,8 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 
 		ewf_file := EWF_file{Name: filename, SegmentNum: uint(idx)}
 
+		ewf_file.CreateHandler()
+
 		ewf_file.ParseHeader()
 
 		ewf_file.ParseSegment()
@@ -91,6 +128,8 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 		fmt.Printf("Parsed Evidence %s in %s\n ", filename, elapsed)
 
 		ewf_files[idx] = ewf_file
+
+		ewf_file.CloseHandler()
 
 	}
 	ewf_image.ewf_files = ewf_files

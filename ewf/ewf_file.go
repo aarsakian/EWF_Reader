@@ -19,6 +19,7 @@ type EWF_files []EWF_file
 
 type EWF_file struct {
 	Name       string
+	Handler    *os.File
 	Size       int64
 	hasNext    bool
 	isLast     bool
@@ -36,7 +37,7 @@ type EWF_Header struct {
 	EOF           uint16
 }
 
-func (ewf_file *EWF_file) GetHash() string {
+func (ewf_file EWF_file) GetHash() string {
 	section := ewf_file.Sections.GetSectionPtr("hash")
 	if section != nil {
 		return section.GetAttr("MD5").(string)
@@ -44,6 +45,20 @@ func (ewf_file *EWF_file) GetHash() string {
 		return "error"
 	}
 
+}
+
+func (ewf_file EWF_file) GetVolInfo() string {
+	section := ewf_file.Sections.GetSectionPtr("volume")
+	if section != nil {
+		chunkCount := section.GetAttr("ChunkCount").(uint64)
+		nofSectorPerChunk := section.GetAttr("NofSectorPerChunk").(uint64)
+		nofBytesPerSector := section.GetAttr("NofBytesPerSector").(uint64)
+		nofSectors := section.GetAttr("NofSectors").(uint64)
+		return fmt.Sprintf("chunck count %d nof Sectors Per chunck %d nof Bytes Per Sector %d nof Sectors %d",
+			chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors)
+	} else {
+		return "error"
+	}
 }
 func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) sections.Table_Entries {
 	tableSections := ewf_file.Sections.Filter("table")
@@ -163,18 +178,39 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 }
 
-func (ewf_file *EWF_file) ReadAt(off int64, length uint64) []byte {
+func (ewf_file *EWF_file) CreateHandler() {
+	var err error
+
+	var file *os.File
+	file, err = os.Open(ewf_file.Name)
+	ewf_file.Handler = file
+	if err != nil {
+		fmt.Println("Error opening  file:", err)
+	}
+
+	fs, err := file.Stat() //file descriptor
+	if err != nil {
+		fmt.Println("Error stat file:", err)
+	}
+	ewf_file.Size = fs.Size()
+
+}
+
+func (ewf_file *EWF_file) CloseHandler() {
+	ewf_file.Handler.Close()
+	ewf_file.Handler = nil
+	ewf_file.Size = -1
+
+}
+
+func (ewf_file EWF_file) ReadAt(off int64, length uint64) []byte {
 	//cast to struct respecting endianess
 	//defer utils.TimeTrack(time.Now(), "reading")
 	var err error
-	var file *os.File
-	file, err = os.Open(ewf_file.Name)
-	fs, err := file.Stat() //file descriptor
-	ewf_file.Size = fs.Size()
 
 	buff := make([]byte, length)
 
-	_, err = file.ReadAt(buff, off)
+	_, err = ewf_file.Handler.ReadAt(buff, off)
 	if err == io.EOF {
 		fmt.Println("Error reading file:", err)
 
