@@ -45,13 +45,14 @@ func (ewf_file *EWF_file) GetHash() string {
 	}
 
 }
-func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets map[int]bool) map[int]bool {
-	section := ewf_file.Sections.GetSectionPtr("table")
-	for _, chunck := range section.GetAttr("Table_entries").(sections.Table_Entries) {
-		chunkOffsets[int(chunck.DataOffset)] = chunck.IsCompressed
-	}
-	return chunkOffsets
+func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) sections.Table_Entries {
+	tableSections := ewf_file.Sections.Filter("table")
+	for _, section := range tableSections {
+		chunkOffsets = append(chunkOffsets, section.GetAttr("Table_entries").(sections.Table_Entries)...)
 
+	}
+
+	return chunkOffsets
 }
 
 func (ewf_file *EWF_file) ParseHeader() {
