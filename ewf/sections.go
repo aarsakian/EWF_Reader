@@ -43,6 +43,21 @@ type Section_Descriptor struct {
 	Checksum        uint32
 }
 
+func (sections Sections) Filter(sectionName string) []Section {
+	var filteredSections []Section
+	section := sections.head
+	for section != nil {
+		if section.Type == sectionName {
+			filteredSections = append(filteredSections, *section)
+
+		}
+		section = section.next
+
+	}
+
+	return filteredSections
+}
+
 func (sections Sections) GetSectionPtr(sectionName string) *Section {
 	section := sections.head
 	for section != nil {
