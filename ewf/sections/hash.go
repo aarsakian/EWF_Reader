@@ -22,8 +22,8 @@ func (hash_section *EWF_Hash_Section) Parse(buf []byte) {
 	utils.Unmarshal(buf, hash_section)
 }
 
-func (hash_section *EWF_Hash_Section) GetAttr(attr string) interface{} {
-	s := reflect.ValueOf(hash_section).Elem() //retrieve since it's a pointer
+func (hash_section EWF_Hash_Section) GetAttr(attr string) interface{} {
+	s := reflect.ValueOf(hash_section) //retrieve since it's a pointer
 
 	sub_s := s.FieldByName(attr)
 	if sub_s.IsValid() {

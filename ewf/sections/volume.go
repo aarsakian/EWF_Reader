@@ -2,6 +2,7 @@ package sections
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
@@ -49,11 +50,20 @@ func (ewf_volume_section *EWF_Volume_Section) Parse(buf []byte) {
 	//	utils.Unmarshal(buf[:94], ewf_volume_section)
 	ewf_volume_section.Vol_Data = vol_data
 
-	ewf_volume_section.Print()
 }
 
-func (ewf_volume_section *EWF_Volume_Section) GetAttr(string) interface{} {
-	return ""
+func (ewf_volume_section EWF_Volume_Section) GetAttr(attr string) interface{} {
+	s := reflect.ValueOf(ewf_volume_section.Vol_Data).Elem() //retrieve since it's a pointer
+
+	sub_s := s.FieldByName(attr) //returns value of the field of the struct
+	if sub_s.IsValid() {
+
+		return sub_s.Uint()
+
+	} else {
+		return "Not Valid"
+	}
+
 }
 
 func (ewf_volume_section EWF_Volume_Section) Print() {
