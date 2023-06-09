@@ -287,7 +287,7 @@ func ReadEndianB(barray []byte) (val interface{}) {
 	return val
 }
 
-func ReadEndian(barray []byte) (val interface{}) {
+func ReadEndian(barray []byte) any {
 	//conversion function
 	//fmt.Println("before conversion----------------",barray)
 	//fmt.Printf("len%d ",len(barray))
@@ -296,7 +296,7 @@ func ReadEndian(barray []byte) (val interface{}) {
 	case 8:
 		var vale uint64
 		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
-		val = vale
+		return vale
 	case 6:
 
 		var vale uint32
@@ -306,21 +306,21 @@ func ReadEndian(barray []byte) (val interface{}) {
 		binary.Read(bytes.NewBuffer(barray[4:]), binary.LittleEndian, &vale1)
 		binary.LittleEndian.PutUint32(buf[:4], vale)
 		binary.LittleEndian.PutUint16(buf[4:], vale1)
-		val, _ = binary.ReadUvarint(bytes.NewBuffer(buf))
+		val, _ := binary.ReadUvarint(bytes.NewBuffer(buf))
+		return val
 
 	case 4:
 		var vale uint32
 		//   fmt.Println("barray",barray)
 		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
-		val = vale
-		val = vale
+		return vale
 	case 2:
 
 		var vale uint16
 
 		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
 		//   fmt.Println("after conversion vale----------------",barray,vale)
-		val = vale
+		return vale
 
 	case 1:
 
@@ -328,15 +328,14 @@ func ReadEndian(barray []byte) (val interface{}) {
 
 		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
 		//      fmt.Println("after conversion vale----------------",barray,vale)
-		val = vale
+		return vale
 
 	default: //best it would be nil
 		var vale uint64
 
 		binary.Read(bytes.NewBuffer(barray), binary.LittleEndian, &vale)
-		val = vale
+		return vale
 	}
-	return val
 }
 
 func ToMap[K comparable, T any](keys []K, vals []T) map[K]T {

@@ -1,7 +1,9 @@
 package ewf
 
 import (
+	"errors"
 	"fmt"
+	"hash/adler32"
 	"io"
 	"os"
 	"strings"
@@ -18,15 +20,15 @@ const NofSections = 200
 type EWF_files []EWF_file
 
 type EWF_file struct {
-	Name       string
-	Handler    *os.File
-	Size       int64
-	hasNext    bool
-	isLast     bool
-	SegmentNum uint
-	Entries    []uint32
-	Header     *EWF_Header
-	Sections   *Sections
+	Name         string
+	Handler      *os.File
+	Size         int64
+	hasNext      bool
+	isLast       bool
+	Entries      []uint32
+	Header       *EWF_Header
+	Sections     *Sections
+	TotalChuncks uint32
 }
 
 type EWF_Header struct {
@@ -42,24 +44,116 @@ func (ewf_file EWF_file) GetHash() string {
 	if section != nil {
 		return section.GetAttr("MD5").(string)
 	} else {
-		return "error"
+		return "error hash section not found"
 	}
 
 }
 
-func (ewf_file EWF_file) GetVolInfo() string {
-	section := ewf_file.Sections.GetSectionPtr("volume")
+func (ewf_file EWF_file) VerifyHash(data []byte) []byte {
+	table_sections := ewf_file.Sections.Filter("table")
+	ewf_file.CreateHandler()
+	defer ewf_file.CloseHandler()
+	var to uint64
+
+	for _, table_section := range table_sections {
+		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
+		nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header).NofEntries)
+		for idx, chunck := range table_entries {
+
+			if idx == nofTable_entries-1 { // last entry
+
+				to = uint64(table_section.Descriptor.NextSectionOffs) - 4 // remove footer
+
+			} else {
+				to = uint64(table_entries[idx+1].DataOffset)
+			}
+
+			from := uint64(chunck.DataOffset)
+
+			buf := ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
+
+			if chunck.IsCompressed {
+				data = append(data, utils.Decompress(buf)...)
+			} else {
+				//	fmt.Println("appending non compressed data", len(buf))
+				data = append(data, buf...)
+			}
+
+		}
+
+	}
+	return data
+
+}
+
+func (ewf_file EWF_file) Verify() bool {
+	table_sections := ewf_file.Sections.Filter("table")
+
+	ewf_file.CreateHandler()
+	defer ewf_file.CloseHandler()
+	var to uint64
+
+	for _, table_section := range table_sections {
+
+		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
+		for idx, chunck := range table_entries {
+			nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header).NofEntries)
+			if idx == nofTable_entries-1 { // last entry
+
+				to = uint64(table_section.Descriptor.NextSectionOffs) - 4 // remove footer
+
+			} else {
+				to = uint64(table_entries[idx+1].DataOffset)
+			}
+
+			from := uint64(chunck.DataOffset)
+
+			buf := ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
+
+			if !chunck.IsCompressed {
+				continue
+			}
+			deflated_data := utils.Decompress(buf)
+
+			if utils.ReadEndianB(buf[len(buf)-4:]) != adler32.Checksum(deflated_data) {
+				fmt.Println("problematic chunck", idx, ewf_file.Name, chunck.DataOffset, adler32.Checksum(deflated_data), utils.ReadEndianB(buf[len(buf)-4:]))
+
+			}
+
+		}
+
+	}
+	return true
+}
+
+func (ewf_file EWF_file) GetChunckInfo() (uint64, uint64, uint64, uint64, error) {
+	var section *Section
+	section = ewf_file.Sections.GetSectionPtr("volume")
+	if section == nil { // alternative search for disk
+		section = ewf_file.Sections.GetSectionPtr("disk")
+	}
+
 	if section != nil {
 		chunkCount := section.GetAttr("ChunkCount").(uint64)
 		nofSectorPerChunk := section.GetAttr("NofSectorPerChunk").(uint64)
 		nofBytesPerSector := section.GetAttr("NofBytesPerSector").(uint64)
 		nofSectors := section.GetAttr("NofSectors").(uint64)
-		return fmt.Sprintf("chunck count %d nof Sectors Per chunck %d nof Bytes Per Sector %d nof Sectors %d",
-			chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors)
+		return chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, nil
 	} else {
-		return "error"
+		return 0, 0, 0, 0, errors.New("section not found")
 	}
+
 }
+
+func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Entry {
+	tableSections := ewf_file.Sections.Filter("table")
+	var entry sections.EWF_Table_Section_Entry
+	for _, section := range tableSections {
+		entry = section.GetAttr("Table_entries").(sections.Table_Entries)[chunck_id]
+	}
+	return entry
+}
+
 func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) sections.Table_Entries {
 	tableSections := ewf_file.Sections.Filter("table")
 	for _, section := range tableSections {
@@ -71,13 +165,28 @@ func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) s
 	return chunkOffsets
 }
 
-func (ewf_file EWF_file) GetLastChunckEndOffset() []int64 {
+func (ewf_file EWF_file) GetTotalNofChuncks() []int64 {
 	var lastOffsets []int64
 	tableSections := ewf_file.Sections.Filter("table")
 	for _, section := range tableSections {
-		lastOffsets = append(lastOffsets, section.Descriptor.NextSectionOffs)
+		section.GetAttr("Table_entries")
 	}
 	return lastOffsets
+}
+
+func (ewf_file EWF_file) IsLast() bool {
+	return ewf_file.Sections.tail.Type == "done"
+}
+
+func (ewf_file EWF_file) IsValid() bool {
+	sig := utils.Stringify(ewf_file.Header.Signature[:])
+
+	return strings.Contains(sig, "EVF")
+
+}
+
+func (ewf_file EWF_file) IsFirst() bool {
+	return ewf_file.Header.SegNum == 1
 }
 
 func (ewf_file *EWF_file) ParseHeader() {
@@ -86,12 +195,6 @@ func (ewf_file *EWF_file) ParseHeader() {
 
 	buf := ewf_file.ReadAt(0, EWF_Header_s)
 	utils.Unmarshal(buf, ewf_header)
-
-	sig := utils.Stringify(ewf_header.Signature[:])
-
-	if !strings.Contains(sig, "EVF") {
-		os.Exit(0)
-	}
 
 	ewf_file.Header = ewf_header
 
@@ -116,6 +219,8 @@ func (ewf_file *EWF_file) ParseSegment() {
 		var s_descriptor *Section_Descriptor = new(Section_Descriptor)
 		utils.Unmarshal(buf, s_descriptor)
 
+		section.DescriptorCalculatedChecksum = adler32.Checksum(buf[:len(buf)-4])
+
 		section.Descriptor = s_descriptor
 
 		section.Type = s_descriptor.GetType()
@@ -127,6 +232,10 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 		}
 
+		if ewf_sections.head == nil {
+			ewf_sections.head = section
+		}
+
 		if prev_section != nil {
 
 			prev_section.next = section
@@ -136,13 +245,10 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 		cur_offset = s_descriptor.NextSectionOffs
 
-		if section.Type == "done" {
+		if section.Type == "done" || section.Type == "next" {
 			ewf_sections.tail = section
 			break
-		} else if section.Type == "header" {
-			ewf_sections.head = section
 		}
-
 		prev_section = section
 
 	}

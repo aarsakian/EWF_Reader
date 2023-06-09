@@ -3,6 +3,7 @@ package sections
 import (
 	"bytes"
 	"fmt"
+	"hash/adler32"
 	"reflect"
 	"time"
 
@@ -34,9 +35,10 @@ type Table_Entries []EWF_Table_Section_Entry
 
 // table section  identifier
 type EWF_Table_Section struct {
-	Table_header  *EWF_Table_Section_Header
-	Table_entries Table_Entries
-	Table_footer  *EWF_Table_Section_Footer
+	Table_header       *EWF_Table_Section_Header
+	Table_entries      Table_Entries
+	Table_footer       *EWF_Table_Section_Footer
+	calculatedChecksum uint32
 }
 
 type EWF_Table_Section_Header struct { //24 bytes
@@ -76,6 +78,10 @@ func (table_footer *EWF_Table_Section_Footer) Parse(buf []byte) {
 
 }
 
+func (ewf_table_section EWF_Table_Section) Verify() bool {
+	return ewf_table_section.calculatedChecksum == uint32(utils.ReadEndian(ewf_table_section.Table_footer.Checksum[:]).(uint32))
+}
+
 func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 
 	defer utils.TimeTrack(time.Now(), "Parsing")
@@ -88,16 +94,14 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 	table_footer.Parse(buf[len(buf)-4:])
 	ewf_table_section.Table_footer = table_footer
 	buf = buf[24 : len(buf)-4]
-	k := 0
-
+	ewf_table_section.calculatedChecksum = adler32.Checksum(buf)
+	fmt.Println("VERIFIED? table entries", ewf_table_section.Verify())
 	var ewf_table_section_entries []EWF_Table_Section_Entry
 	for i := uint32(0); i < ewf_table_section.Table_header.NofEntries; i += 1 {
 		var ewf_table_section_entry *EWF_Table_Section_Entry = new(EWF_Table_Section_Entry)
-		ewf_table_section_entry.Parse(buf[0+k : 4+k])
+		ewf_table_section_entry.Parse(buf[4*i : 4+4*i])
 
 		ewf_table_section_entries = append(ewf_table_section_entries, *ewf_table_section_entry)
-
-		k += 4
 
 	}
 	ewf_table_section.Table_entries = ewf_table_section_entries

@@ -1,6 +1,8 @@
 package ewf
 
 import (
+	"fmt"
+
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
@@ -25,12 +27,13 @@ type ParserCollector interface {
 }
 
 type Section struct {
-	Descriptor *Section_Descriptor
-	Type       string
-	BodyOffset uint64
-	body       Body
-	next       *Section
-	prev       *Section
+	Descriptor                   *Section_Descriptor
+	DescriptorCalculatedChecksum uint32
+	Type                         string
+	BodyOffset                   uint64
+	body                         Body
+	next                         *Section
+	prev                         *Section
 }
 
 type Section_Descriptor struct {
@@ -112,6 +115,8 @@ func (section *Section) ParseBody(buf []byte) {
 		section.body = new(sections.EWF_Hash_Section)
 	case "digest":
 		section.body = new(sections.EWF_Digest_Section)
+	default:
+		fmt.Println("uknown section", section.Type)
 	}
 
 	section.body.Parse(buf)
