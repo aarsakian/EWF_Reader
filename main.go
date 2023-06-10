@@ -67,7 +67,7 @@ func main() {
 	showImageInfo := flag.Bool("showInfo", false, "show evidence information")
 	showHash := flag.Bool("showHash", false, "show stored hash value")
 	offset := flag.Int64("offset", -1, "offset to read data from the evidence")
-	len := flag.Uint64("len", 0, "number of bytes to read from offset in the evidence")
+	len := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
 	flag.Parse()
 
 	if *evidencePath == "" {
@@ -78,6 +78,7 @@ func main() {
 	filenames := FindEvidenceFiles(*evidencePath)
 	var ewf_image ewf.EWF_Image
 	ewf_image.ParseEvidence(filenames)
+	ewf_image.PopulateChunckOffsets()
 
 	if *showImageInfo {
 		ewf_image.ShowInfo()
