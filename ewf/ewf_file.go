@@ -20,15 +20,15 @@ const NofSections = 200
 type EWF_files []EWF_file
 
 type EWF_file struct {
-	Name         string
-	Handler      *os.File
-	Size         int64
-	hasNext      bool
-	isLast       bool
-	Entries      []uint32
-	Header       *EWF_Header
-	Sections     *Sections
-	TotalChuncks uint32
+	Name            string
+	Handler         *os.File
+	Size            int64
+	hasNext         bool
+	isLast          bool
+	Entries         []uint32
+	Header          *EWF_Header
+	Sections        *Sections
+	NumberOfChuncks uint32
 }
 
 type EWF_Header struct {
