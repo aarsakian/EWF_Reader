@@ -15,7 +15,11 @@ type EWF_Image struct {
 }
 
 func (ewf_image EWF_Image) ShowInfo() {
-	fmt.Println(ewf_image.ewf_files[0].GetChunckInfo())
+	chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, _ := ewf_image.ewf_files[0].GetChunckInfo()
+	fmt.Println("number of chuncks", chunkCount)
+	fmt.Println("sectors per chunck", nofSectorPerChunk)
+	fmt.Println("bytes per sector", nofBytesPerSector)
+	fmt.Println("number of sectors", nofSectors)
 }
 
 func (ewf_image EWF_Image) ReadAt(offset int64, len uint64) []byte {
