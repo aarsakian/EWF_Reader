@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -60,23 +61,45 @@ func FindEvidenceFiles(path_ string) []string {
 }
 
 func main() {
+	evidencePath := flag.String("evidence", "", "path to evidence")
+	verify := flag.Bool("verify", false, "verify data of evidence using adler32 checksum")
+	VerifyHash := flag.Bool("verifyHash", false, "verify stored hash in evidence")
+	showImageInfo := flag.Bool("showInfo", false, "show evidence information")
+	showHash := flag.Bool("showHash", false, "show stored hash value")
+	offset := flag.Int64("offset", -1, "offset to read data from the evidence")
+	len := flag.Uint64("len", 0, "number of bytes to read from offset in the evidence")
+	flag.Parse()
 
-	if len(os.Args) < 2 {
+	if *evidencePath == "" {
 		fmt.Println("Evidence filename needed")
 		os.Exit(0)
 	}
 
-	filenames := FindEvidenceFiles(os.Args[1]) //producer
+	filenames := FindEvidenceFiles(*evidencePath)
 	var ewf_image ewf.EWF_Image
-	ewf_image.ParseEvidence(filenames) //consumer
+	ewf_image.ParseEvidence(filenames)
 
-	ewf_image.ReadAt(480423, 512)
-	ewf_image.ShowInfo()
-	hash := ewf_image.GetHash()
+	if *showImageInfo {
+		ewf_image.ShowInfo()
+	}
 
-	fmt.Println(hash)
-	verified := ewf_image.Verify()
-	verified1 := ewf_image.VerifyHash()
-	fmt.Println("Verified status", verified, verified1)
+	if *showHash {
+		hash := ewf_image.GetHash()
+		fmt.Println(hash)
+	}
+
+	if *offset != -1 && *len != 0 {
+		ewf_image.ReadAt(*offset, *len)
+	}
+
+	if *verify {
+		verified := ewf_image.Verify()
+		fmt.Println("verified ", verified)
+	}
+
+	if *VerifyHash {
+		verified1 := ewf_image.VerifyHash()
+		fmt.Println("Verified hash", verified1) // buf)
+	}
 
 }
