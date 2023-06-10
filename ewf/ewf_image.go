@@ -18,23 +18,33 @@ func (ewf_image EWF_Image) ShowInfo() {
 	fmt.Println(ewf_image.ewf_files[0].GetChunckInfo())
 }
 
-func (ewf_image EWF_Image) ReadAt(offset int64, len uint64) {
-	segment := offset / int64(ewf_image.nofChunks*ewf_image.chuncksize)
-	base_offset := ewf_image.nofChunks * ewf_image.chuncksize
-	if offset > int64(base_offset) {
-		ewf_image.ewf_files[segment].ReadAt(offset-int64(base_offset), len)
-	} else {
-		chunck_id := offset / int64(ewf_image.chuncksize)
+func (ewf_image EWF_Image) ReadAt(offset int64, len uint64) []byte {
 
-		chunck := ewf_image.ewf_files[segment].GetChunck(int(chunck_id))
-		ewf_image.ewf_files[segment].ReadAt(int64(chunck.DataOffset), len)
+	segment_size := int64(ewf_image.nofChunks * ewf_image.chuncksize)
+	segment_id := offset / segment_size
+	var chunck_id int64
+
+	if offset > segment_size {
+		chunck_id = offset / int64(ewf_image.chuncksize)
+
+	} else {
+		chunck_id = offset / int64(ewf_image.chuncksize)
+
 	}
 
+	ewf_file := ewf_image.ewf_files[segment_id]
+	chunck := ewf_file.GetChunck(int(chunck_id))
+
+	ewf_file.CreateHandler()
+	defer ewf_file.CloseHandler()
+
+	return ewf_file.ReadAt(int64(chunck.DataOffset), len)
 }
 
 func (ewf_image EWF_Image) VerifyHash() bool {
 	var data []byte
 	for _, ewf_file := range ewf_image.ewf_files {
+
 		data = ewf_file.VerifyHash(data)
 
 	}
