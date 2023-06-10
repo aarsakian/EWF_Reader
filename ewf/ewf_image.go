@@ -45,7 +45,7 @@ func (ewf_image EWF_Image) VerifyHash() bool {
 	var data []byte
 	for _, ewf_file := range ewf_image.ewf_files {
 
-		data = ewf_file.VerifyHash(data)
+		data = ewf_file.CollectData(data)
 
 	}
 	calculated_md5 := fmt.Sprintf("%x", md5.Sum(data))

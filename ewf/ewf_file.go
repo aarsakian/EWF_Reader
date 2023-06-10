@@ -49,12 +49,12 @@ func (ewf_file EWF_file) GetHash() string {
 
 }
 
-func (ewf_file EWF_file) VerifyHash(data []byte) []byte {
+func (ewf_file EWF_file) CollectData(data []byte) []byte {
 	table_sections := ewf_file.Sections.Filter("table")
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	var to uint64
-
+	var buf []byte
 	for _, table_section := range table_sections {
 		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
 		nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header).NofEntries)
@@ -70,14 +70,15 @@ func (ewf_file EWF_file) VerifyHash(data []byte) []byte {
 
 			from := uint64(chunck.DataOffset)
 
-			buf := ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
-
+			buf = ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
 			if chunck.IsCompressed {
-				data = append(data, utils.Decompress(buf)...)
+
+				buf = utils.Decompress(buf)
 			} else {
-				//	fmt.Println("appending non compressed data", len(buf))
-				data = append(data, buf...)
+				buf = buf[:len(buf)-4] //last 4 bytes checksum
 			}
+
+			data = append(data, buf...)
 
 		}
 
@@ -92,7 +93,7 @@ func (ewf_file EWF_file) Verify() bool {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	var to, from uint64
-
+	var buf []byte
 	for _, table_section := range table_sections {
 
 		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
@@ -108,7 +109,7 @@ func (ewf_file EWF_file) Verify() bool {
 			}
 			from = uint64(chunck.DataOffset)
 
-			buf := ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
+			buf = ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
 
 			if !chunck.IsCompressed {
 				continue
