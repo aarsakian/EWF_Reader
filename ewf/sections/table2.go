@@ -93,9 +93,10 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 	var table_footer *EWF_Table_Section_Footer = new(EWF_Table_Section_Footer)
 	table_footer.Parse(buf[len(buf)-4:])
 	ewf_table_section.Table_footer = table_footer
+
 	buf = buf[24 : len(buf)-4]
 	ewf_table_section.calculatedChecksum = adler32.Checksum(buf)
-	fmt.Println("VERIFIED? table entries", ewf_table_section.Verify())
+
 	var ewf_table_section_entries []EWF_Table_Section_Entry
 	for i := uint32(0); i < ewf_table_section.Table_header.NofEntries; i += 1 {
 		var ewf_table_section_entry *EWF_Table_Section_Entry = new(EWF_Table_Section_Entry)
