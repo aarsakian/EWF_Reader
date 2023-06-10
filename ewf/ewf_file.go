@@ -62,7 +62,7 @@ func (ewf_file EWF_file) VerifyHash(data []byte) []byte {
 
 			if idx == nofTable_entries-1 { // last entry
 
-				to = uint64(table_section.Descriptor.NextSectionOffs) - 4 // remove footer
+				to = uint64(table_section.prev.Descriptor.NextSectionOffs)
 
 			} else {
 				to = uint64(table_entries[idx+1].DataOffset)
@@ -91,7 +91,7 @@ func (ewf_file EWF_file) Verify() bool {
 
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
-	var to uint64
+	var to, from uint64
 
 	for _, table_section := range table_sections {
 
@@ -99,14 +99,14 @@ func (ewf_file EWF_file) Verify() bool {
 		for idx, chunck := range table_entries {
 			nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header).NofEntries)
 			if idx == nofTable_entries-1 { // last entry
+				//working with previous section since offsets refer to sectors section
 
-				to = uint64(table_section.Descriptor.NextSectionOffs) - 4 // remove footer
-
+				to = uint64(table_section.prev.Descriptor.NextSectionOffs)
 			} else {
 				to = uint64(table_entries[idx+1].DataOffset)
-			}
 
-			from := uint64(chunck.DataOffset)
+			}
+			from = uint64(chunck.DataOffset)
 
 			buf := ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
 
@@ -116,8 +116,8 @@ func (ewf_file EWF_file) Verify() bool {
 			deflated_data := utils.Decompress(buf)
 
 			if utils.ReadEndianB(buf[len(buf)-4:]) != adler32.Checksum(deflated_data) {
-				fmt.Println("problematic chunck", idx, ewf_file.Name, chunck.DataOffset, adler32.Checksum(deflated_data), utils.ReadEndianB(buf[len(buf)-4:]))
-
+				fmt.Println("problematic chunck", idx, to, from, ewf_file.Name, chunck.DataOffset, adler32.Checksum(deflated_data), utils.ReadEndianB(buf[len(buf)-4:]))
+				return false
 			}
 
 		}
@@ -135,6 +135,7 @@ func (ewf_file EWF_file) GetChunckInfo() (uint64, uint64, uint64, uint64, error)
 
 	if section != nil {
 		chunkCount := section.GetAttr("ChunkCount").(uint64)
+
 		nofSectorPerChunk := section.GetAttr("NofSectorPerChunk").(uint64)
 		nofBytesPerSector := section.GetAttr("NofBytesPerSector").(uint64)
 		nofSectors := section.GetAttr("NofSectors").(uint64)
@@ -147,11 +148,17 @@ func (ewf_file EWF_file) GetChunckInfo() (uint64, uint64, uint64, uint64, error)
 
 func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Entry {
 	tableSections := ewf_file.Sections.Filter("table")
-	var entry sections.EWF_Table_Section_Entry
-	for _, section := range tableSections {
-		entry = section.GetAttr("Table_entries").(sections.Table_Entries)[chunck_id]
+
+	chunck_cnt := 0
+	for _, table := range tableSections {
+		for _, chunck := range table.GetAttr("Table_entries").(sections.Table_Entries) {
+			if chunck_id == chunck_cnt {
+				return chunck
+			}
+			chunck_cnt += 1
+		}
 	}
-	return entry
+	return sections.EWF_Table_Section_Entry{}
 }
 
 func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) sections.Table_Entries {
@@ -244,7 +251,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 		}
 
 		cur_offset = s_descriptor.NextSectionOffs
-
+		fmt.Println(section.Type, cur_offset)
 		if section.Type == "done" || section.Type == "next" {
 			ewf_sections.tail = section
 			break
