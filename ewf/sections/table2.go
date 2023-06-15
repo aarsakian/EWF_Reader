@@ -33,6 +33,8 @@ type EWF_Table2_Section struct {
 
 type Table_Entries []EWF_Table_Section_Entry
 
+type Table_EntriesPtrs []*EWF_Table_Section_Entry
+
 // table section  identifier
 type EWF_Table_Section struct {
 	Table_header       *EWF_Table_Section_Header
