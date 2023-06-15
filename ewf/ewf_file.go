@@ -1,6 +1,7 @@
 package ewf
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"hash/adler32"
@@ -25,9 +26,9 @@ type EWF_file struct {
 	Size            int64
 	hasNext         bool
 	isLast          bool
-	Entries         []uint32
 	Header          *EWF_Header
 	Sections        *Sections
+	FirstChunckId   int
 	NumberOfChuncks uint32
 }
 
@@ -49,7 +50,7 @@ func (ewf_file EWF_file) GetHash() string {
 
 }
 
-func (ewf_file EWF_file) CollectData(data []byte) []byte {
+func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 	table_sections := ewf_file.Sections.Filter("table")
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
@@ -78,22 +79,22 @@ func (ewf_file EWF_file) CollectData(data []byte) []byte {
 				buf = buf[:len(buf)-4] //last 4 bytes checksum
 			}
 
-			data = append(data, buf...)
+			buffer.Write(buf)
 
 		}
 
 	}
-	return data
 
 }
 
-func (ewf_file EWF_file) Verify() bool {
+func (ewf_file EWF_file) Verify(chunk_size int) bool {
 	table_sections := ewf_file.Sections.Filter("table")
 
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	var to, from uint64
 	var buf []byte
+	deflated_data := make([]byte, chunk_size)
 	for _, table_section := range table_sections {
 
 		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
@@ -114,7 +115,7 @@ func (ewf_file EWF_file) Verify() bool {
 			if !chunck.IsCompressed {
 				continue
 			}
-			deflated_data := utils.Decompress(buf)
+			deflated_data = utils.Decompress(buf)
 
 			if utils.ReadEndianB(buf[len(buf)-4:]) != adler32.Checksum(deflated_data) {
 				fmt.Println("problematic chunck", idx, to, from, ewf_file.Name, chunck.DataOffset, adler32.Checksum(deflated_data), utils.ReadEndianB(buf[len(buf)-4:]))
