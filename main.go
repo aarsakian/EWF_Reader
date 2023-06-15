@@ -81,6 +81,8 @@ func main() {
 	ewf_image.ParseEvidence(filenames)
 	ewf_image.PopulateChunckOffsets()
 
+	ewf_image.CachedChuncks = make([][]byte, ewf_image.NofChunks)
+
 	if *showImageInfo {
 		ewf_image.ShowInfo()
 	}
@@ -97,11 +99,17 @@ func main() {
 
 		chunckId := *offset / int64(ewf_image.Chuncksize)       // the start id with respect to asked offset
 		chuncksRequired := *len/int64(ewf_image.Chuncksize) + 1 // how many chuncks needed to retrieve data
+		if ewf_image.IsCached(int(chunckId), int(chuncksRequired)) {
+			ewf_image.RetrieveFromCache(int(chunckId), int(chuncksRequired), &buf)
 
-		ewf_file := ewf_image.LocateSegment(chunckId)
-		chuncks := ewf_image.GetChuncks(int(chunckId), int(chuncksRequired))
+		} else {
+			ewf_file := ewf_image.LocateSegment(chunckId)
+			chuncks := ewf_image.GetChuncks(int(chunckId), int(chuncksRequired))
 
-		ewf_file.LocateData(chuncks, &buf)
+			ewf_file.LocateData(chuncks, &buf)
+
+			ewf_image.CacheIt(int(chunckId), int(chuncksRequired), buf)
+		}
 
 		fmt.Printf("%s\n", buf.Bytes())
 	}

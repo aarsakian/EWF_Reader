@@ -16,7 +16,7 @@ type EWF_Image struct {
 	Chuncksize    uint32
 	NofChunks     uint32
 	ChunckOffsets sections.Table_EntriesPtrs
-	CachedChuncks []uint32
+	CachedChuncks [][]byte
 }
 
 func (ewf_image EWF_Image) ShowInfo() {
@@ -84,6 +84,27 @@ func (ewf_image *EWF_Image) PopulateChunckOffsets() {
 
 	}
 	ewf_image.ChunckOffsets = offsets
+}
+
+func (ewf_image EWF_Image) IsCached(chunckId int, chuncksRequired int) bool {
+	for id := 0; id < chuncksRequired; id++ {
+		if ewf_image.CachedChuncks[chunckId+id] == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (ewf_image EWF_Image) RetrieveFromCache(chunckId int, chuncksRequired int, buf *bytes.Buffer) {
+	for id := 0; id < chuncksRequired; id++ {
+		buf.Write(ewf_image.CachedChuncks[chunckId+id])
+	}
+}
+
+func (ewf_image *EWF_Image) CacheIt(chunckId int, chuncksRequired int, buf bytes.Buffer) {
+	for id := 0; id < chuncksRequired; id++ {
+		ewf_image.CachedChuncks[chunckId+id] = buf.Next(int(ewf_image.Chuncksize))
+	}
 }
 
 func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
