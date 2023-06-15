@@ -37,7 +37,7 @@ func (ewf_image EWF_Image) ReadAt(offset int64, size int64) []byte {
 	buf.Grow(int(size))
 	for _, ewf_file := range ewf_image.ewf_files {
 
-		if chunck_id < int64(ewf_file.NumberOfChuncks) {
+		if chunck_id >= int64(ewf_file.FirstChunckId) && chunck_id < int64(ewf_file.FirstChunckId)+int64(ewf_file.NumberOfChuncks) {
 			ewf_file.CreateHandler()
 			defer ewf_file.CloseHandler()
 			for curChunck := int64(0); curChunck < chuncksRequired; curChunck++ {
@@ -64,13 +64,16 @@ func (ewf_image EWF_Image) ReadAt(offset int64, size int64) []byte {
 }
 
 func (ewf_image EWF_Image) VerifyHash() bool {
-	var data []byte
+
+	var buf bytes.Buffer
+	buf.Grow(int(ewf_image.nofChunks * ewf_image.chuncksize))
+
 	for _, ewf_file := range ewf_image.ewf_files {
 
-		data = ewf_file.CollectData(data)
+		ewf_file.CollectData(&buf)
 
 	}
-	calculated_md5 := fmt.Sprintf("%x", md5.Sum(data))
+	calculated_md5 := fmt.Sprintf("%x", md5.Sum(buf.Bytes()))
 	return calculated_md5 == ewf_image.GetHash()
 
 }
@@ -78,7 +81,7 @@ func (ewf_image EWF_Image) VerifyHash() bool {
 func (ewf_image EWF_Image) Verify() bool {
 
 	for _, ewf_file := range ewf_image.ewf_files {
-		if !ewf_file.Verify() {
+		if !ewf_file.Verify(int(ewf_image.chuncksize)) {
 			return false
 		}
 	}
@@ -93,7 +96,7 @@ func (ewf_image *EWF_Image) SetChunckInfo(chunkCount uint64, nofSectorPerChunk u
 func (ewf_image *EWF_Image) PopulateChunckOffsets() {
 	var offsets sections.Table_Entries
 	for idx, ewf_file := range ewf_image.ewf_files {
-
+		ewf_image.ewf_files[idx].FirstChunckId = len(offsets)
 		offsets = ewf_file.GetChunckOffsets(offsets)
 
 		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(len(offsets))
