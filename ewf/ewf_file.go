@@ -163,15 +163,18 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) GetChunckOffsets(chunkOffsets sections.Table_Entries) sections.Table_Entries {
+func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs) int {
 	tableSections := ewf_file.Sections.Filter("table")
+	pos := 0
 	for _, section := range tableSections {
-
-		chunkOffsets = append(chunkOffsets, section.GetAttr("Table_entries").(sections.Table_Entries)...)
+		chuncks := section.GetAttr("Table_entries").(sections.Table_Entries)
+		for id := range chuncks {
+			chunckOffsetsPtrs[pos] = &chuncks[id]
+			pos++
+		}
 
 	}
-
-	return chunkOffsets
+	return pos
 }
 
 func (ewf_file EWF_file) GetTotalNofChuncks() []int64 {
@@ -325,6 +328,31 @@ func (ewf_file *EWF_file) CloseHandler() {
 	ewf_file.Handler.Close()
 	ewf_file.Handler = nil
 	ewf_file.Size = -1
+
+}
+
+func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, buf *bytes.Buffer) {
+	ewf_file.CreateHandler()
+	defer ewf_file.CloseHandler()
+	for idx, chunck := range chuncksPtrs {
+		if idx == len(chuncksPtrs)-1 { // last chunck not part of asked chunck range
+			break
+		}
+		to := chuncksPtrs[idx+1].DataOffset
+		from := chunck.DataOffset
+		data := ewf_file.ReadAt(int64(from), uint64(to-from))
+		if chunck.IsCompressed {
+			data = utils.Decompress(data)
+		}
+
+		remainingSpace := buf.Cap() - buf.Len()
+		if len(data) > remainingSpace { // user asked a size less than the last chunck
+			buf.Write(data[:remainingSpace])
+			break
+		}
+		buf.Write(data)
+
+	}
 
 }
 

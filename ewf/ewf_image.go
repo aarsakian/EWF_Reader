@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 var CHUNK_SIZE int = 32768
 
 type EWF_Image struct {
 	ewf_files     EWF_files
-	chuncksize    uint32
-	nofChunks     uint32
-	ChunckOffsets sections.Table_Entries
+	Chuncksize    uint32
+	NofChunks     uint32
+	ChunckOffsets sections.Table_EntriesPtrs
+	CachedChuncks []uint32
 }
 
 func (ewf_image EWF_Image) ShowInfo() {
@@ -27,46 +27,21 @@ func (ewf_image EWF_Image) ShowInfo() {
 	fmt.Println("number of sectors", nofSectors)
 }
 
-func (ewf_image EWF_Image) ReadAt(offset int64, size int64) []byte {
+func (ewf_image EWF_Image) LocateSegment(chunck_id int64) EWF_file {
 
-	chunck_id := offset / int64(ewf_image.chuncksize)       // the start id with respect to asked offset
-	chuncksRequired := size/int64(ewf_image.chuncksize) + 1 // how many chuncks needed to retrieve data
-
-	chunck := ewf_image.ChunckOffsets[chunck_id]
-	var buf bytes.Buffer
-	buf.Grow(int(size))
 	for _, ewf_file := range ewf_image.ewf_files {
 
 		if chunck_id >= int64(ewf_file.FirstChunckId) && chunck_id < int64(ewf_file.FirstChunckId)+int64(ewf_file.NumberOfChuncks) {
-			ewf_file.CreateHandler()
-			defer ewf_file.CloseHandler()
-			for curChunck := int64(0); curChunck < chuncksRequired; curChunck++ {
-				to := ewf_image.ChunckOffsets[chunck_id+1+curChunck].DataOffset
-				from := ewf_image.ChunckOffsets[chunck_id+curChunck].DataOffset
-				data := ewf_file.ReadAt(int64(from), uint64(to-from))
-				if chunck.IsCompressed {
-					data = utils.Decompress(data)
-
-				}
-				remainingSpace := buf.Cap() - buf.Len()
-				if len(data) > remainingSpace {
-					buf.Write(data[:remainingSpace])
-					break
-				}
-				buf.Write(data)
-
-			}
-
-			return buf.Bytes()
+			return ewf_file
 		}
 	}
-	return []byte{}
+	return EWF_file{}
 }
 
 func (ewf_image EWF_Image) VerifyHash() bool {
 
 	var buf bytes.Buffer
-	buf.Grow(int(ewf_image.nofChunks * ewf_image.chuncksize))
+	buf.Grow(int(ewf_image.NofChunks * ewf_image.Chuncksize))
 
 	for _, ewf_file := range ewf_image.ewf_files {
 
@@ -81,7 +56,7 @@ func (ewf_image EWF_Image) VerifyHash() bool {
 func (ewf_image EWF_Image) Verify() bool {
 
 	for _, ewf_file := range ewf_image.ewf_files {
-		if !ewf_file.Verify(int(ewf_image.chuncksize)) {
+		if !ewf_file.Verify(int(ewf_image.Chuncksize)) {
 			return false
 		}
 	}
@@ -89,17 +64,23 @@ func (ewf_image EWF_Image) Verify() bool {
 }
 
 func (ewf_image *EWF_Image) SetChunckInfo(chunkCount uint64, nofSectorPerChunk uint64, nofBytesPerSector uint64) {
-	ewf_image.chuncksize = uint32(nofBytesPerSector) * uint32(nofSectorPerChunk)
-	ewf_image.nofChunks = uint32(chunkCount)
+	ewf_image.Chuncksize = uint32(nofBytesPerSector) * uint32(nofSectorPerChunk)
+	ewf_image.NofChunks = uint32(chunkCount)
+}
+
+func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_EntriesPtrs {
+	return ewf_image.ChunckOffsets[chunckId : chunckId+chuncksRequired+1] // add one for boundary
 }
 
 func (ewf_image *EWF_Image) PopulateChunckOffsets() {
-	var offsets sections.Table_Entries
-	for idx, ewf_file := range ewf_image.ewf_files {
-		ewf_image.ewf_files[idx].FirstChunckId = len(offsets)
-		offsets = ewf_file.GetChunckOffsets(offsets)
 
-		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(len(offsets))
+	offsets := make(sections.Table_EntriesPtrs, ewf_image.NofChunks)
+	chuncksProcessed := 0
+	for idx, ewf_file := range ewf_image.ewf_files {
+		ewf_image.ewf_files[idx].FirstChunckId = chuncksProcessed
+		chuncksProcessed += ewf_file.PopulateChunckOffsets(offsets)
+
+		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(chuncksProcessed)
 
 	}
 	ewf_image.ChunckOffsets = offsets
