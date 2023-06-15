@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -90,7 +91,19 @@ func main() {
 	}
 
 	if *offset != -1 && *len != 0 {
-		ewf_image.ReadAt(*offset, *len)
+
+		var buf bytes.Buffer
+		buf.Grow(int(*len))
+
+		chunckId := *offset / int64(ewf_image.Chuncksize)       // the start id with respect to asked offset
+		chuncksRequired := *len/int64(ewf_image.Chuncksize) + 1 // how many chuncks needed to retrieve data
+
+		ewf_file := ewf_image.LocateSegment(chunckId)
+		chuncks := ewf_image.GetChuncks(int(chunckId), int(chuncksRequired))
+
+		ewf_file.LocateData(chuncks, &buf)
+
+		fmt.Printf("%s\n", buf.Bytes())
 	}
 
 	if *verify {
