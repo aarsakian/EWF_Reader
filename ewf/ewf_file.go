@@ -331,26 +331,33 @@ func (ewf_file *EWF_file) CloseHandler() {
 
 }
 
-func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, buf *bytes.Buffer) {
+func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, asked_offset int64,
+	buf *bytes.Buffer) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
+	relativeOffset := 0
 	for idx, chunck := range chuncksPtrs {
 		if idx == len(chuncksPtrs)-1 { // last chunck not part of asked chunck range
 			break
 		}
 		to := chuncksPtrs[idx+1].DataOffset
 		from := chunck.DataOffset
+
 		data := ewf_file.ReadAt(int64(from), uint64(to-from))
 		if chunck.IsCompressed {
 			data = utils.Decompress(data)
 		}
 
-		remainingSpace := buf.Cap() - buf.Len()
-		if len(data) > remainingSpace { // user asked a size less than the last chunck
-			buf.Write(data[:remainingSpace])
+		if idx == 0 { // first chunck write from asked offset
+			relativeOffset = int(asked_offset)
+		}
+
+		remainingSpace := buf.Cap() - buf.Len() // free buffer size
+		if len(data) > remainingSpace {         // user asked a size less than the last chunck
+			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
 		}
-		buf.Write(data)
+		buf.Write(data[relativeOffset:])
 
 	}
 
