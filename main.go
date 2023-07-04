@@ -92,6 +92,14 @@ func main() {
 		fmt.Println(hash)
 	}
 
+	if *offset > int64(ewf_image.NofChunks)*int64(ewf_image.Chuncksize) {
+		panic("offset exceeds size of data")
+	}
+
+	if *offset+*len > int64(ewf_image.NofChunks)*int64(ewf_image.Chuncksize) {
+		panic("len exceeds remaing data area")
+	}
+
 	if *offset != -1 && *len != 0 {
 
 		var buf bytes.Buffer
@@ -103,12 +111,16 @@ func main() {
 			ewf_image.RetrieveFromCache(int(chunckId), int(chuncksRequired), &buf)
 
 		} else {
-			ewf_file := ewf_image.LocateSegment(chunckId)
+			ewf_files := ewf_image.LocateSegments(chunckId, chuncksRequired)
 			chuncks := ewf_image.GetChuncks(int(chunckId), int(chuncksRequired))
+			for _, ewf_file := range ewf_files {
+				relativeOffset := *offset % int64(ewf_image.Chuncksize)
 
-			ewf_file.LocateData(chuncks, &buf)
+				ewf_file.LocateData(chuncks, relativeOffset, &buf)
 
-			ewf_image.CacheIt(int(chunckId), int(chuncksRequired), buf)
+				ewf_image.CacheIt(int(chunckId), int(chuncksRequired), buf)
+			}
+
 		}
 
 		fmt.Printf("%s\n", buf.Bytes())
