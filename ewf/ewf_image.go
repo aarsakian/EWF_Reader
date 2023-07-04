@@ -27,15 +27,27 @@ func (ewf_image EWF_Image) ShowInfo() {
 	fmt.Println("number of sectors", nofSectors)
 }
 
-func (ewf_image EWF_Image) LocateSegment(chunck_id int64) EWF_file {
-
+func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks int64) EWF_files {
+	var ewf_files EWF_files
+	remainingChunks := nofRequestedChunks
+	startChunckId := chunck_id
 	for _, ewf_file := range ewf_image.ewf_files {
+		for {
+			if startChunckId >= int64(ewf_file.FirstChunckId) &&
+				startChunckId < int64(ewf_file.FirstChunckId)+int64(ewf_file.NumberOfChuncks) {
+				ewf_files = append(ewf_files, ewf_file)
 
-		if chunck_id >= int64(ewf_file.FirstChunckId) && chunck_id < int64(ewf_file.FirstChunckId)+int64(ewf_file.NumberOfChuncks) {
-			return ewf_file
+				remainingChunks -= int64(ewf_file.NumberOfChuncks) - startChunckId
+				startChunckId += int64(ewf_file.NumberOfChuncks)
+
+			}
+			if remainingChunks <= 0 {
+				break
+			}
 		}
+
 	}
-	return EWF_file{}
+	return ewf_files
 }
 
 func (ewf_image EWF_Image) VerifyHash() bool {
