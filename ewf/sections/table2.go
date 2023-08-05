@@ -107,6 +107,7 @@ func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 		ewf_table_section_entries = append(ewf_table_section_entries, *ewf_table_section_entry)
 
 	}
+
 	ewf_table_section.Table_entries = ewf_table_section_entries
 
 }

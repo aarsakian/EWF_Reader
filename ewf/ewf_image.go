@@ -42,7 +42,7 @@ func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks in
 
 			}
 			if remainingChunks <= 0 {
-				break
+				return ewf_files
 			}
 		}
 
@@ -90,10 +90,10 @@ func (ewf_image *EWF_Image) PopulateChunckOffsets() {
 	chuncksProcessed := 0
 	for idx, ewf_file := range ewf_image.ewf_files {
 		ewf_image.ewf_files[idx].FirstChunckId = chuncksProcessed
-		chuncksProcessed += ewf_file.PopulateChunckOffsets(offsets)
+		chuncksProcessed += ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed)
 
 		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(chuncksProcessed)
-
+		fmt.Printf("finished segment %s processed chuncks %d\n", ewf_file.Name, chuncksProcessed)
 	}
 	ewf_image.ChunckOffsets = offsets
 }

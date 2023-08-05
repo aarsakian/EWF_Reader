@@ -163,18 +163,21 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs) int {
+func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
 	tableSections := ewf_file.Sections.Filter("table")
-	pos := 0
+	fmt.Printf("nof chuncks: \n")
 	for _, section := range tableSections {
 		chuncks := section.GetAttr("Table_entries").(sections.Table_Entries)
 		for id := range chuncks {
 			chunckOffsetsPtrs[pos] = &chuncks[id]
 			pos++
 		}
+		fmt.Printf("%d \t", len(chuncks))
 
 	}
+	fmt.Printf("nof table sections %d curPos %d \n", len(tableSections), pos)
 	return pos
+
 }
 
 func (ewf_file EWF_file) GetTotalNofChuncks() []int64 {
@@ -224,9 +227,10 @@ func (ewf_file *EWF_file) ParseSegment() {
 	var prev_section *Section
 	for cur_offset < ewf_file.Size {
 		//   parsing section headers
+
 		var section *Section = new(Section)
 
-		buf = ewf_file.ReadAt(cur_offset, EWF_Section_Header_s) //read section header
+		buf = ewf_file.ReadAt(cur_offset, EWF_Section_Header_s) //read section header 76 bytes
 
 		var s_descriptor *Section_Descriptor = new(Section_Descriptor)
 		utils.Unmarshal(buf, s_descriptor)
@@ -236,10 +240,11 @@ func (ewf_file *EWF_file) ParseSegment() {
 		section.Descriptor = s_descriptor
 
 		section.Type = s_descriptor.GetType()
+		fmt.Println(section.Type, cur_offset)
+		if !s_descriptor.IsBodyEmpty() && section.Type != "sectors" {
+			buf = ewf_file.ReadAt(cur_offset+EWF_Section_Header_s,
+				s_descriptor.SectionSize-EWF_Section_Header_s) //read section body
 
-		buf = ewf_file.ReadAt(cur_offset+EWF_Section_Header_s,
-			s_descriptor.SectionSize-EWF_Section_Header_s) //read section body
-		if section.Type != "sectors" {
 			section.ParseBody(buf)
 
 		}
@@ -256,7 +261,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 		}
 
 		cur_offset = s_descriptor.NextSectionOffs
-		fmt.Println(section.Type, cur_offset)
+
 		if section.Type == "done" || section.Type == "next" {
 			ewf_sections.tail = section
 			break

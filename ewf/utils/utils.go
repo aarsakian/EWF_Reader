@@ -139,7 +139,8 @@ func GetTime(attr []byte) time.Time {
 
 		if err != nil {
 			//ln("CONV",string(t))
-			log.Fatal("ERRR", err)
+			//log.Fatal("ERRR", err)
+			fmt.Printf("error converting time %s", err)
 			//  year int, month Month, day, hour, min, sec, nsec int, loc *Location) Time
 			// return time.Date(attr[0:3],attr[3:4], attr[4:5], attr[5:6], attr[6:7], attr[7:8], 0 , time.UTC)
 		}

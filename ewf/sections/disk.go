@@ -11,7 +11,7 @@ type EWF_Disk_Section struct {
 	Disk_Data *Disk_Data
 }
 
-type Disk_Data struct { //1052
+type Disk_Data struct {
 	MediaType         uint8
 	Unknown1          [3]uint8
 	ChunkCount        uint32 "Within all segment files"
