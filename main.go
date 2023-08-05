@@ -79,6 +79,7 @@ func main() {
 	filenames := FindEvidenceFiles(*evidencePath)
 	var ewf_image ewf.EWF_Image
 	ewf_image.ParseEvidence(filenames)
+	fmt.Printf("about to populate map of chuncks")
 	ewf_image.PopulateChunckOffsets()
 
 	ewf_image.CachedChuncks = make([][]byte, ewf_image.NofChunks)
