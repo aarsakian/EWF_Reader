@@ -74,6 +74,10 @@ func (sections Sections) GetSectionPtr(sectionName string) *Section {
 	return nil
 }
 
+func (descriptor Section_Descriptor) IsBodyEmpty() bool {
+	return descriptor.SectionSize == 0
+}
+
 func (descriptor Section_Descriptor) GetType() string {
 	return utils.Stringify(descriptor.Header[:])
 }
@@ -115,6 +119,12 @@ func (section *Section) ParseBody(buf []byte) {
 		section.body = new(sections.EWF_Hash_Section)
 	case "digest":
 		section.body = new(sections.EWF_Digest_Section)
+	case "x_description":
+		section.body = new(sections.XDescription)
+	case "x_hash":
+		section.body = new(sections.XHash)
+	case "x_statistics":
+		section.body = new(sections.XStatistics)
 	default:
 		fmt.Println("uknown section", section.Type)
 	}
