@@ -3,7 +3,7 @@ package sections
 import (
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type EWF_Done_Section struct {
@@ -11,7 +11,7 @@ type EWF_Done_Section struct {
 
 func (done_section *EWF_Done_Section) Parse(buf []byte) {
 
-	defer utils.TimeTrack(time.Now(), "Parsing")
+	defer Utils.TimeTrack(time.Now(), "Parsing")
 
 }
 

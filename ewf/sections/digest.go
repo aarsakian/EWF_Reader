@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 
 	"encoding/hex"
 )
@@ -18,9 +18,9 @@ type EWF_Digest_Section struct {
 
 func (digest_section *EWF_Digest_Section) Parse(buf []byte) {
 
-	defer utils.TimeTrack(time.Now(), "Parsing")
+	defer Utils.TimeTrack(time.Now(), "Parsing")
 
-	utils.Unmarshal(buf, digest_section)
+	Utils.Unmarshal(buf, digest_section)
 }
 
 func (digest_section *EWF_Digest_Section) GetAttr(attr string) interface{} {

@@ -3,7 +3,7 @@ package sections
 import (
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type EWF_Data_Section struct {
@@ -36,8 +36,8 @@ func (ewf_data_section *EWF_Data_Section) GetAttr(string) interface{} {
 }
 
 func (ewf_data_section *EWF_Data_Section) Parse(buf []byte) {
-	defer utils.TimeTrack(time.Now(), "Parsing")
-	utils.Unmarshal(buf, ewf_data_section)
+	defer Utils.TimeTrack(time.Now(), "Parsing")
+	Utils.Unmarshal(buf, ewf_data_section)
 
 	/*  fmt.Println("Data section",ewf_data_section.body.NofSectorPerChunk, ewf_data_section.body.PALM,
 	    ewf_data_section.body.ChunkCount, ewf_data_section.body.CompressionLevel, ewf_data_section.body.NofBytesPerSector)

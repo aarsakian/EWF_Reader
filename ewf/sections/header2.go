@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type EWF_Header2_Section struct {
@@ -34,9 +34,9 @@ func (ewf_h2_section *EWF_Header2_Section) Parse(buf []byte) {
 	//function to parse header2 section attributes
 	//to do take into account endianess
 
-	val := utils.Decompress(buf)
+	val := Utils.Decompress(buf)
 
-	defer utils.TimeTrack(time.Now(), "Parsing")
+	defer Utils.TimeTrack(time.Now(), "Parsing")
 	line_del, _ := hex.DecodeString("0a")
 	tab_del, err := hex.DecodeString("09")
 	if err != nil {
@@ -48,11 +48,11 @@ func (ewf_h2_section *EWF_Header2_Section) Parse(buf []byte) {
 		for id_num, attr := range bytes.Split(line, tab_del) {
 			b = bytes.NewReader(attr)
 			if line_number == 0 {
-				utils.Parse(b, &ewf_h2_section.BOM)
-				utils.Parse(b, &ewf_h2_section.NofCategories)
+				Utils.Parse(b, &ewf_h2_section.BOM)
+				Utils.Parse(b, &ewf_h2_section.NofCategories)
 
 			} else if line_number == 1 {
-				utils.Parse(b, &ewf_h2_section.CategoryName)
+				Utils.Parse(b, &ewf_h2_section.CategoryName)
 			} else if line_number == 2 {
 
 			} else if line_number == 3 {
@@ -73,10 +73,10 @@ func (ewf_h2_section *EWF_Header2_Section) Parse(buf []byte) {
 				} else if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_OPERATING_SYSTEM {
 					ewf_h2_section.ov = string(attr)
 				} else if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_DATE {
-					ewf_h2_section.m = utils.GetTime(attr)
+					ewf_h2_section.m = Utils.GetTime(attr)
 
 				} else if id_num == EWF_HEADER_VALUES_INDEX_SYSTEM_DATE {
-					ewf_h2_section.u = utils.GetTime(attr)
+					ewf_h2_section.u = Utils.GetTime(attr)
 
 				} else if id_num == EWF_HEADER_VALUES_INDEX_PASSWORD {
 					ewf_h2_section.p = string(attr)

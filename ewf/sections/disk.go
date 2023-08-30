@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type EWF_Disk_Section struct {
@@ -56,8 +56,8 @@ func (ewf_disk_section EWF_Disk_Section) Print() {
 
 func (ewf_disk_section *EWF_Disk_Section) Parse(buf []byte) {
 	var disk_data *Disk_Data = new(Disk_Data)
-	utils.Unmarshal(buf, disk_data) // start after ewf_volume_section
-	//	utils.Unmarshal(buf[:94], ewf_volume_section)
+	Utils.Unmarshal(buf, disk_data) // start after ewf_volume_section
+	//	Utils.Unmarshal(buf[:94], ewf_volume_section)
 	ewf_disk_section.Disk_Data = disk_data
 
 }

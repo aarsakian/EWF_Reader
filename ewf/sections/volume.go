@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type EWF_Volume_Section struct { //0-94
@@ -46,8 +46,8 @@ type Volume_Data struct { //1052
 
 func (ewf_volume_section *EWF_Volume_Section) Parse(buf []byte) {
 	var vol_data *Volume_Data = new(Volume_Data)
-	utils.Unmarshal(buf, vol_data) // start after ewf_volume_section
-	//	utils.Unmarshal(buf[:94], ewf_volume_section)
+	Utils.Unmarshal(buf, vol_data) // start after ewf_volume_section
+	//	Utils.Unmarshal(buf[:94], ewf_volume_section)
 	ewf_volume_section.Vol_Data = vol_data
 
 }
