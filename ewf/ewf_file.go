@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 const EWF_Section_Header_s = 76
@@ -74,7 +74,7 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 			buf = ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
 			if chunck.IsCompressed {
 
-				buf = utils.Decompress(buf)
+				buf = Utils.Decompress(buf)
 			} else {
 				buf = buf[:len(buf)-4] //last 4 bytes checksum
 			}
@@ -115,10 +115,10 @@ func (ewf_file EWF_file) Verify(chunk_size int) bool {
 			if !chunck.IsCompressed {
 				continue
 			}
-			deflated_data = utils.Decompress(buf)
+			deflated_data = Utils.Decompress(buf)
 
-			if utils.ReadEndianB(buf[len(buf)-4:]) != adler32.Checksum(deflated_data) {
-				fmt.Println("problematic chunck", idx, to, from, ewf_file.Name, chunck.DataOffset, adler32.Checksum(deflated_data), utils.ReadEndianB(buf[len(buf)-4:]))
+			if Utils.ReadEndianB(buf[len(buf)-4:]) != adler32.Checksum(deflated_data) {
+				fmt.Println("problematic chunck", idx, to, from, ewf_file.Name, chunck.DataOffset, adler32.Checksum(deflated_data), Utils.ReadEndianB(buf[len(buf)-4:]))
 				return false
 			}
 
@@ -194,7 +194,7 @@ func (ewf_file EWF_file) IsLast() bool {
 }
 
 func (ewf_file EWF_file) IsValid() bool {
-	sig := utils.Stringify(ewf_file.Header.Signature[:])
+	sig := Utils.Stringify(ewf_file.Header.Signature[:])
 
 	return strings.Contains(sig, "EVF")
 
@@ -205,11 +205,11 @@ func (ewf_file EWF_file) IsFirst() bool {
 }
 
 func (ewf_file *EWF_file) ParseHeader() {
-	defer utils.TimeTrack(time.Now(), "Parsing Segment Header")
+	defer Utils.TimeTrack(time.Now(), "Parsing Segment Header")
 	var ewf_header *EWF_Header = new(EWF_Header)
 
 	buf := ewf_file.ReadAt(0, EWF_Header_s)
-	utils.Unmarshal(buf, ewf_header)
+	Utils.Unmarshal(buf, ewf_header)
 
 	ewf_file.Header = ewf_header
 
@@ -233,7 +233,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 		buf = ewf_file.ReadAt(cur_offset, EWF_Section_Header_s) //read section header 76 bytes
 
 		var s_descriptor *Section_Descriptor = new(Section_Descriptor)
-		utils.Unmarshal(buf, s_descriptor)
+		Utils.Unmarshal(buf, s_descriptor)
 
 		section.DescriptorCalculatedChecksum = adler32.Checksum(buf[:len(buf)-4])
 
@@ -298,7 +298,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 		if Sections[i].Type == "table" {
 			e := Sections[i].GetAttr("Table_entries").([]uint32)[:]
 
-			ewf_file.Entries = utils.Append(ewf_file.Entries, e)
+			ewf_file.Entries = Utils.Append(ewf_file.Entries, e)
 
 		}
 		Sections[i].GetAttr("MD5_value")
@@ -350,7 +350,7 @@ func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, aske
 
 		data := ewf_file.ReadAt(int64(from), uint64(to-from))
 		if chunck.IsCompressed {
-			data = utils.Decompress(data)
+			data = Utils.Decompress(data)
 		}
 
 		if idx == 0 { // first chunck write from asked offset
@@ -370,7 +370,7 @@ func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, aske
 
 func (ewf_file EWF_file) ReadAt(off int64, length uint64) []byte {
 	//cast to struct respecting endianess
-	//defer utils.TimeTrack(time.Now(), "reading")
+	//defer Utils.TimeTrack(time.Now(), "reading")
 	var err error
 
 	buff := make([]byte, length)
