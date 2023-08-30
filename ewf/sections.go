@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 type Sections struct {
@@ -79,7 +79,7 @@ func (descriptor Section_Descriptor) IsBodyEmpty() bool {
 }
 
 func (descriptor Section_Descriptor) GetType() string {
-	return utils.Stringify(descriptor.Header[:])
+	return Utils.Stringify(descriptor.Header[:])
 }
 
 func (section *Section) GetAttr(val string) any {
@@ -149,12 +149,12 @@ func (section *Section) ParseBody(buf []byte) {
 
 func (section_header *Section_Header) Parse(buf *bytes.Reader) {
 
-	defer utils.TimeTrack(time.Now(), "Parsing") //header of each section
+	defer Utils.TimeTrack(time.Now(), "Parsing") //header of each section
 
 	s := reflect.ValueOf(section_header).Elem()
 	for i := 0; i < s.NumField(); i++ {
 		//parse struct attributes
-		utils.Parse(buf, s.Field(i).Addr().Interface())
+		Utils.Parse(buf, s.Field(i).Addr().Interface())
 
 	}
 
