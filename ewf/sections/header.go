@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 const (
@@ -68,9 +68,9 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 	//function to parse header2 section attributes
 	//to do take into account endianess
 
-	val := utils.Decompress(buf)
+	val := Utils.Decompress(buf)
 
-	defer utils.TimeTrack(time.Now(), "Parsing")
+	defer Utils.TimeTrack(time.Now(), "Parsing")
 	line_del, _ := hex.DecodeString("0a")
 	tab_del, err := hex.DecodeString("09")
 	if err != nil {
@@ -92,7 +92,7 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 				identifiers = append(identifiers, AcquiredMediaIdentifiers[string(attr)])
 			} else if line_number == 3 {
 				if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_DATE || id_num == EWF_HEADER_VALUES_INDEX_SYSTEM_DATE {
-					values = append(values, utils.GetTime(attr).Format("2006-01-02T15:04:05"))
+					values = append(values, Utils.GetTime(attr).Format("2006-01-02T15:04:05"))
 
 				} else {
 					values = append(values, string(attr))
@@ -101,7 +101,7 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 			}
 		}
 	}
-	ewf_h_section.AcquiredMediaInfo = utils.ToMap(identifiers, values)
+	ewf_h_section.AcquiredMediaInfo = Utils.ToMap(identifiers, values)
 
 }
 

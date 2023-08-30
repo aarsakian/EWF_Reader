@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 const Chunk_Size uint32 = 64 * 512
@@ -60,7 +60,7 @@ type EWF_Table_Section_Header_EnCase struct { //24bytes
 
 func (table_header *EWF_Table_Section_Header) Parse(buf []byte) {
 
-	utils.Unmarshal(buf, table_header)
+	Utils.Unmarshal(buf, table_header)
 
 }
 
@@ -68,7 +68,7 @@ func (table_entry *EWF_Table_Section_Entry) Parse(buf []byte) {
 
 	IsCompressed := buf[3]&0x80 == 0x80
 	buf[3] &= 0x7F //exlude MSB
-	utils.Unmarshal(buf, table_entry)
+	Utils.Unmarshal(buf, table_entry)
 	table_entry.IsCompressed = IsCompressed
 }
 
@@ -76,17 +76,17 @@ func (table_footer *EWF_Table_Section_Footer) Parse(buf []byte) {
 
 	//parse struct attributes
 
-	utils.Unmarshal(buf, table_footer)
+	Utils.Unmarshal(buf, table_footer)
 
 }
 
 func (ewf_table_section EWF_Table_Section) Verify() bool {
-	return ewf_table_section.calculatedChecksum == uint32(utils.ReadEndian(ewf_table_section.Table_footer.Checksum[:]).(uint32))
+	return ewf_table_section.calculatedChecksum == uint32(Utils.ReadEndian(ewf_table_section.Table_footer.Checksum[:]).(uint32))
 }
 
 func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 
-	defer utils.TimeTrack(time.Now(), "Parsing")
+	defer Utils.TimeTrack(time.Now(), "Parsing")
 	var table_header *EWF_Table_Section_Header = new(EWF_Table_Section_Header)
 	table_header.Parse(buf[:24])
 
@@ -130,11 +130,11 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 		data = sectors_buf[entry.DataOffset-uint32(sectors_offs) : entry.DataOffset-uint32(sectors_offs)+Chunk_Size]
 
 		if bytes.HasPrefix(data, zlib_header) {
-			utils.Decompress(data)
+			Utils.Decompress(data)
 			fmt.Println("IDX", idx)
 			/*sectors_buf[entry.ChunkDataOffset-uint32(sectors_offs):entry.ChunkDataOffset-uint32(sectors_offs)+5],
 			  "REM",uint32(len(sectors_buf))-entry.ChunkDataOffset-uint32(sectors_offs), "CompresseD?",entry.IsCompressed)*/
-			//  utils.DecompressF(data)
+			//  Utils.DecompressF(data)
 		}
 
 	}
@@ -143,7 +143,7 @@ func (ewf_table_section *EWF_Table_Section) Collect(sectors_buf []byte, sectors_
 	data = sectors_buf[last_entry.DataOffset-uint32(sectors_offs) : last_entry.DataOffset-uint32(sectors_offs)+
 		uint32(len(sectors_buf))-last_entry.DataOffset-uint32(sectors_offs)]
 	if bytes.HasSuffix(data, zlib_header) {
-		utils.DecompressF(data)
+		Utils.DecompressF(data)
 	}
 }
 
