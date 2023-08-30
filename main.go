@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/aarsakian/EWF_Reader/ewf"
-	"github.com/aarsakian/EWF_Reader/ewf/utils"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 var MediaTypes = map[uint]string{0x00: "Removable Storage Media",
@@ -40,7 +40,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	filenames := utils.FindEvidenceFiles(*evidencePath)
+	filenames := Utils.FindEvidenceFiles(*evidencePath)
 	var ewf_image ewf.EWF_Image
 	ewf_image.ParseEvidence(filenames)
 	fmt.Printf("about to populate map of chuncks")
