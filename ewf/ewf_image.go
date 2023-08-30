@@ -19,6 +19,30 @@ type EWF_Image struct {
 	CachedChuncks [][]byte
 }
 
+func (ewf_image EWF_Image) RetrieveData(offset int64, length int64) []byte {
+	var buf bytes.Buffer
+	buf.Grow(int(length))
+
+	chunckId := offset / int64(ewf_image.Chuncksize)          // the start id with respect to asked offset
+	chuncksRequired := length/int64(ewf_image.Chuncksize) + 1 // how many chuncks needed to retrieve data
+	if ewf_image.IsCached(int(chunckId), int(chuncksRequired)) {
+		ewf_image.RetrieveFromCache(int(chunckId), int(chuncksRequired), &buf)
+
+	} else {
+		ewf_files := ewf_image.LocateSegments(chunckId, chuncksRequired) // the files that contains the asked data
+		chuncks := ewf_image.GetChuncks(int(chunckId), int(chuncksRequired))
+		for _, ewf_file := range ewf_files {
+			relativeOffset := offset % int64(ewf_image.Chuncksize)
+
+			ewf_file.LocateData(chuncks, relativeOffset, &buf)
+
+			ewf_image.CacheIt(int(chunckId), int(chuncksRequired), buf)
+		}
+
+	}
+	return buf.Bytes()
+}
+
 func (ewf_image EWF_Image) ShowInfo() {
 	chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, _ := ewf_image.ewf_files[0].GetChunckInfo()
 	fmt.Println("number of chuncks", chunkCount)
@@ -84,13 +108,13 @@ func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) section
 	return ewf_image.ChunckOffsets[chunckId : chunckId+chuncksRequired+1] // add one for boundary
 }
 
-func (ewf_image *EWF_Image) PopulateChunckOffsets() {
+func (ewf_image *EWF_Image) populateChunckOffsets() {
 
 	offsets := make(sections.Table_EntriesPtrs, ewf_image.NofChunks)
 	chuncksProcessed := 0
 	for idx, ewf_file := range ewf_image.ewf_files {
 		ewf_image.ewf_files[idx].FirstChunckId = chuncksProcessed
-		chuncksProcessed += ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed)
+		chuncksProcessed = ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed)
 
 		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(chuncksProcessed)
 		fmt.Printf("finished segment %s processed chuncks %d\n", ewf_file.Name, chuncksProcessed)
@@ -157,6 +181,10 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 
 	}
 	ewf_image.ewf_files = ewf_files
+
+	ewf_image.populateChunckOffsets()
+
+	ewf_image.CachedChuncks = make([][]byte, ewf_image.NofChunks)
 
 }
 
