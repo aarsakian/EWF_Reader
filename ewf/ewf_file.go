@@ -172,7 +172,7 @@ func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_
 			chunckOffsetsPtrs[pos] = &chuncks[id]
 			pos++
 		}
-		fmt.Printf("%d \t", len(chuncks))
+		//	fmt.Printf("%d \t", len(chuncks))
 
 	}
 	fmt.Printf("nof table sections %d curPos %d \n", len(tableSections), pos)
