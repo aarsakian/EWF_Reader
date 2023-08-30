@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -346,4 +348,36 @@ func ToMap[K comparable, T any](keys []K, vals []T) map[K]T {
 		m[key] = vals[idx]
 	}
 	return m
+}
+
+func FindEvidenceFiles(path_ string) []string {
+
+	basePath := filepath.Dir(path_)
+
+	_, fname := filepath.Split(path_)
+
+	Files, err := ioutil.ReadDir(basePath)
+	if err != nil {
+		log.Fatal("ERR", err)
+	}
+	k := 0
+	filenames := make([]string, len(Files))
+
+	for _, finfo := range Files {
+
+		if !finfo.IsDir() {
+
+			if strings.HasPrefix(finfo.Name(), strings.Split(fname, ".")[0]) {
+
+				filenames[k] = filepath.Join(basePath, finfo.Name()) //supply channel
+				//fmt.Println("INFO", basePath+finfo.Name(), strings.Split(fname, ".")[0])
+				k += 1
+			}
+
+		}
+	}
+	filenames = filenames[:k]
+	fmt.Println(filenames)
+	return filenames
+
 }
