@@ -337,7 +337,7 @@ func (ewf_file *EWF_file) CloseHandler() {
 }
 
 func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, asked_offset int64,
-	buf *bytes.Buffer) {
+	dataLen int, buf *bytes.Buffer) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	relativeOffset := 0
@@ -351,14 +351,16 @@ func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, aske
 		data := ewf_file.ReadAt(int64(from), uint64(to-from))
 		if chunck.IsCompressed {
 			data = Utils.Decompress(data)
+
 		}
 
-		if idx == 0 { // first chunck write from asked offset
+		data = data[:len(data)-4] //4 last bytes are checksums
+		if idx == 0 {             // first chunck write from asked offset
 			relativeOffset = int(asked_offset)
 		}
 
-		remainingSpace := buf.Cap() - buf.Len() // free buffer size
-		if len(data) > remainingSpace {         // user asked a size less than the last chunck
+		remainingSpace := dataLen - buf.Len() // free buffer size
+		if len(data) > remainingSpace {       // user asked a size less than the last chunck
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
 		}
