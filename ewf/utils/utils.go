@@ -377,7 +377,7 @@ func FindEvidenceFiles(path_ string) []string {
 		}
 	}
 	filenames = filenames[:k]
-	fmt.Println(filenames)
+
 	return filenames
 
 }
