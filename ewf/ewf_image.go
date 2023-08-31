@@ -34,9 +34,9 @@ func (ewf_image EWF_Image) RetrieveData(offset int64, length int64) []byte {
 		for _, ewf_file := range ewf_files {
 			relativeOffset := offset % int64(ewf_image.Chuncksize)
 
-			ewf_file.LocateData(chuncks, relativeOffset, &buf)
+			ewf_file.LocateData(chuncks, relativeOffset, int(length), &buf)
 
-			ewf_image.CacheIt(int(chunckId), int(chuncksRequired), buf)
+			ewf_image.CacheIt(int(chunckId), int(chuncksRequired), &buf)
 		}
 
 	}
@@ -137,8 +137,11 @@ func (ewf_image EWF_Image) RetrieveFromCache(chunckId int, chuncksRequired int, 
 	}
 }
 
-func (ewf_image *EWF_Image) CacheIt(chunckId int, chuncksRequired int, buf bytes.Buffer) {
+func (ewf_image *EWF_Image) CacheIt(chunckId int, chuncksRequired int, buf *bytes.Buffer) {
 	for id := 0; id < chuncksRequired; id++ {
+		if buf.Len() < int(ewf_image.Chuncksize) { //cache only when buffer equals the chunck size
+			continue
+		}
 		ewf_image.CachedChuncks[chunckId+id] = buf.Next(int(ewf_image.Chuncksize))
 	}
 }
