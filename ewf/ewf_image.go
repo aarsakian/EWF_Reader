@@ -52,18 +52,26 @@ func (ewf_image EWF_Image) ShowInfo() {
 }
 
 func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks int64) EWF_files {
+	ewf_filesMap := map[EWF_file]bool{}
 	var ewf_files EWF_files
 	remainingChunks := nofRequestedChunks
 	startChunckId := chunck_id
 	for _, ewf_file := range ewf_image.ewf_files {
+		ewf_filesMap[ewf_file] = false
 		for {
 			if startChunckId >= int64(ewf_file.FirstChunckId) &&
-				startChunckId < int64(ewf_file.FirstChunckId)+int64(ewf_file.NumberOfChuncks) {
-				ewf_files = append(ewf_files, ewf_file)
+				startChunckId < int64(ewf_file.NumberOfChuncks) { //located in this segment
+				// workaround to keep unique values
+				if !ewf_filesMap[ewf_file] {
+					ewf_files = append(ewf_files, ewf_file)
+					ewf_filesMap[ewf_file] = true
+				}
 
-				remainingChunks -= int64(ewf_file.NumberOfChuncks) - startChunckId
-				startChunckId += int64(ewf_file.NumberOfChuncks)
+				remainingChunks -= 1
+				startChunckId += startChunckId + int64(ewf_image.Chuncksize) //advance to the next chunck
 
+			} else {
+				break
 			}
 			if remainingChunks <= 0 {
 				return ewf_files
@@ -142,7 +150,7 @@ func (ewf_image *EWF_Image) CacheIt(chunckId int, chuncksRequired int, buf *byte
 		if buf.Len() < int(ewf_image.Chuncksize) { //cache only when buffer equals the chunck size
 			continue
 		}
-		ewf_image.CachedChuncks[chunckId+id] = buf.Next(int(ewf_image.Chuncksize))
+		ewf_image.CachedChuncks[chunckId+id] = buf.Bytes()[:int(ewf_image.Chuncksize)]
 	}
 }
 
