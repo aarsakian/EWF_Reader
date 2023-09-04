@@ -43,7 +43,7 @@ func main() {
 	filenames := Utils.FindEvidenceFiles(*evidencePath)
 	var ewf_image ewf.EWF_Image
 	ewf_image.ParseEvidence(filenames)
-	fmt.Printf("about to populate map of chuncks")
+	fmt.Printf("about to populate map of chuncks\n")
 
 	if *showImageInfo {
 		ewf_image.ShowInfo()
