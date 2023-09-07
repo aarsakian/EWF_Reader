@@ -46,6 +46,10 @@ var AcquiredMediaIdentifiers = map[string]string{
 	"n":   "Evidence Number",
 	"e":   "Examiner Name",
 	"t":   "Notes",
+	"md":  "Media model",
+	"sn":  "Serial number",
+	"l":   "Device label",
+	"an":  "AN unknown",
 	"av":  "Version",
 	"ov":  "Platform",
 	"m":   "Acquired Date",
@@ -80,6 +84,7 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 	var identifiers []string
 	var values []string
 
+	var time_ids []int // save ids of m & u
 	for line_number, line := range bytes.Split(val, line_del) {
 		for id_num, attr := range bytes.Split(line, tab_del) {
 
@@ -89,9 +94,13 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 			} else if line_number == 1 {
 				ewf_h_section.CategoryName = string(attr)
 			} else if line_number == 2 {
-				identifiers = append(identifiers, AcquiredMediaIdentifiers[string(attr)])
+				identifier := AcquiredMediaIdentifiers[string(attr)]
+				if identifier == "Acquired Date" || identifier == "System Date" {
+					time_ids = append(time_ids, id_num)
+				}
+				identifiers = append(identifiers, identifier)
 			} else if line_number == 3 {
-				if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_DATE || id_num == EWF_HEADER_VALUES_INDEX_SYSTEM_DATE {
+				if len(time_ids) == 2 && (id_num == time_ids[0] || id_num == time_ids[1]) {
 					values = append(values, Utils.GetTime(attr).Format("2006-01-02T15:04:05"))
 
 				} else {
@@ -105,6 +114,8 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 
 }
 
-func (ewf_h_section EWF_Header_Section) GetAttr(string) interface{} {
-	return ewf_h_section
+func (ewf_h_section EWF_Header_Section) GetAttr(requestedInfo string) interface{} {
+
+	return ewf_h_section.AcquiredMediaInfo[requestedInfo]
+
 }
