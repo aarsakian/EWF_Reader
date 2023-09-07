@@ -128,7 +128,7 @@ func (ewf_file EWF_file) Verify(chunk_size int) bool {
 	return true
 }
 
-func (ewf_file EWF_file) GetChunckInfo() (uint64, uint64, uint64, uint64, error) {
+func (ewf_file EWF_file) GetChunckInfo() (uint64, uint64, uint64, uint64, string, error) {
 	var section *Section
 	section = ewf_file.Sections.GetSectionPtr("volume")
 	if section == nil { // alternative search for disk
@@ -141,9 +141,18 @@ func (ewf_file EWF_file) GetChunckInfo() (uint64, uint64, uint64, uint64, error)
 		nofSectorPerChunk := section.GetAttr("NofSectorPerChunk").(uint64)
 		nofBytesPerSector := section.GetAttr("NofBytesPerSector").(uint64)
 		nofSectors := section.GetAttr("NofSectors").(uint64)
-		return chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, nil
+
+		section = ewf_file.Sections.GetSectionPtr("header")
+		version := section.GetAttr("Version").(string)
+		section = ewf_file.Sections.GetSectionPtr("header2")
+		software := ""
+		if section != nil {
+			software = section.GetAttr("AN unknown").(string)
+		}
+
+		return chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, fmt.Sprintf("%s %s", software, version), nil
 	} else {
-		return 0, 0, 0, 0, errors.New("section not found")
+		return 0, 0, 0, 0, "-", errors.New("section not found")
 	}
 
 }
@@ -166,10 +175,16 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
 	tableSections := ewf_file.Sections.Filter("table")
 	fmt.Printf("nof chuncks: \n")
+	baseOffset := uint32(0) //offset from beginning to sectors
 	for _, section := range tableSections {
 		chuncks := section.GetAttr("Table_entries").(sections.Table_Entries)
 		for id := range chuncks {
-			chunckOffsetsPtrs[pos] = &chuncks[id]
+			if section.prev.prev != nil {
+				baseOffset = uint32(section.prev.prev.Descriptor.NextSectionOffs)
+			}
+			chunckOffsetsPtrs[pos] = &sections.EWF_Table_Section_Entry{
+				DataOffset:   chuncks[id].DataOffset + baseOffset,
+				IsCompressed: chuncks[id].IsCompressed}
 			pos++
 		}
 		//	fmt.Printf("%d \t", len(chuncks))
