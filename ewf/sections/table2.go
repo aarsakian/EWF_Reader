@@ -12,6 +12,11 @@ import (
 
 const Chunk_Size uint32 = 64 * 512
 
+/*
+	DataOffset points to  Encase2-5 from beginning of the segment
+
+EnCase 6 DataOffset points from beginning of the table base offset.
+*/
 type EWF_Table_Section_Entry struct {
 	DataOffset   uint32 "MSB indicates if chunk data is (un)compressed (0)/1 offset relative to the start of the fileit is located in the preseding sectors section "
 	IsCompressed bool   "1 -> Compressed"
