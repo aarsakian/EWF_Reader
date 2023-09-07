@@ -19,6 +19,8 @@ import (
 	// "io/ioutil"
 )
 
+type NoNull string
+
 func Parse(buf *bytes.Reader, val interface{}) {
 	//target is val
 	err := binary.Read(buf, binary.LittleEndian, val)
@@ -151,6 +153,30 @@ func GetTime(attr []byte) time.Time {
 
 	return time.Now()
 
+}
+
+func ByteReverse(barray []byte) []byte { //work with indexes
+	//  fmt.Println("before",barray)
+	for i, j := 0, len(barray)-1; i < j; i, j = i+1, j-1 {
+
+		barray[i], barray[j] = barray[j], barray[i]
+
+	}
+	return barray
+
+}
+
+func RemoveNulls(barray []byte) []byte {
+	var nonullbarray []byte
+	for _, v := range barray {
+		if v == 0x00 {
+			continue
+		}
+
+		nonullbarray = append(nonullbarray, v)
+
+	}
+	return nonullbarray
 }
 
 /*CMF|FLG  0x78|  (FLG|CM)
