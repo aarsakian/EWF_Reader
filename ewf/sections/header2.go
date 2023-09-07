@@ -3,7 +3,6 @@ package sections
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"time"
 
@@ -11,22 +10,9 @@ import (
 )
 
 type EWF_Header2_Section struct {
-	BOM           [2]uint8 //declares endianess 0xff0xfe (little) vice versa
-	NofCategories uint16
-	CategoryName  []uint8
-	a             string    "Description"
-	c             string    "Case Number"
-	n             string    "Evidence Number"
-	e             string    "Examiner Name"
-	t             string    "Notes"
-	av            string    "Version"
-	ov            string    "Platform"
-	m             time.Time "Acquired Date"
-	u             time.Time "System Date"
-	p             string    "Password Hash"
-	pid           string    "Process Identifiers"
-	dc            string    "Unknown"
-	ext           string    "Extents"
+	NofCategories     string
+	CategoryName      string
+	AcquiredMediaInfo map[string]string
 }
 
 func (ewf_h2_section *EWF_Header2_Section) Parse(buf []byte) {
@@ -37,60 +23,46 @@ func (ewf_h2_section *EWF_Header2_Section) Parse(buf []byte) {
 	val := Utils.Decompress(buf)
 
 	defer Utils.TimeTrack(time.Now(), "Parsing")
-	line_del, _ := hex.DecodeString("0a")
-	tab_del, err := hex.DecodeString("09")
+	line_del, _ := hex.DecodeString("000a")
+	tab_del, err := hex.DecodeString("0009")
 	if err != nil {
 		log.Fatal(err)
 	}
-	var b *bytes.Reader
 
+	var identifiers []string
+	var values []string
+	var time_ids []int // save ids of m & u
 	for line_number, line := range bytes.Split(val, line_del) {
 		for id_num, attr := range bytes.Split(line, tab_del) {
-			b = bytes.NewReader(attr)
+			attr = Utils.RemoveNulls(attr)
 			if line_number == 0 {
-				Utils.Parse(b, &ewf_h2_section.BOM)
-				Utils.Parse(b, &ewf_h2_section.NofCategories)
+				ewf_h2_section.NofCategories = string(attr[0])
 
 			} else if line_number == 1 {
-				Utils.Parse(b, &ewf_h2_section.CategoryName)
+				ewf_h2_section.CategoryName = string(attr)
 			} else if line_number == 2 {
-
+				identifier := AcquiredMediaIdentifiers[string(attr)]
+				if identifier == "Acquired Date" || identifier == "System Date" {
+					time_ids = append(time_ids, id_num)
+				}
+				identifiers = append(identifiers, identifier)
 			} else if line_number == 3 {
-				if id_num == EWF_HEADER_VALUES_INDEX_DESCRIPTION {
-					ewf_h2_section.a = string(attr)
-					fmt.Println("TIME", ewf_h2_section.a)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_CASE_NUMBER {
-					ewf_h2_section.c = string(attr)
+				if len(time_ids) == 2 && (id_num == time_ids[0] || id_num == time_ids[1]) {
+					values = append(values, Utils.GetTime(attr).Format("2006-01-02T15:04:05"))
 
-				} else if id_num == EWF_HEADER_VALUES_INDEX_EXAMINER_NAME {
-					ewf_h2_section.n = string(attr)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_EVIDENCE_NUMBER {
-					ewf_h2_section.e = string(attr)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_NOTES {
-					ewf_h2_section.t = string(attr)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_SOFTWARE_VERSION {
-					ewf_h2_section.av = string(attr)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_OPERATING_SYSTEM {
-					ewf_h2_section.ov = string(attr)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_ACQUIRY_DATE {
-					ewf_h2_section.m = Utils.GetTime(attr)
-
-				} else if id_num == EWF_HEADER_VALUES_INDEX_SYSTEM_DATE {
-					ewf_h2_section.u = Utils.GetTime(attr)
-
-				} else if id_num == EWF_HEADER_VALUES_INDEX_PASSWORD {
-					ewf_h2_section.p = string(attr)
-				} else if id_num == EWF_HEADER_VALUES_INDEX_PROCESS_IDENTIFIER {
-					ewf_h2_section.pid = string(attr)
-
+				} else {
+					values = append(values, string(attr))
 				}
 
 			}
 		}
 	}
+	ewf_h2_section.AcquiredMediaInfo = Utils.ToMap(identifiers, values)
 
 }
 
-func (ewf_h2_section EWF_Header2_Section) GetAttr(string) interface{} {
-	return ewf_h2_section
+func (ewf_h2_section EWF_Header2_Section) GetAttr(requestedInfo string) interface{} {
+
+	return ewf_h2_section.AcquiredMediaInfo[requestedInfo]
+
 }
