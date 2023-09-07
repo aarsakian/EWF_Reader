@@ -44,11 +44,12 @@ func (ewf_image EWF_Image) RetrieveData(offset int64, length int64) []byte {
 }
 
 func (ewf_image EWF_Image) ShowInfo() {
-	chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, _ := ewf_image.ewf_files[0].GetChunckInfo()
+	chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, toolInfo, _ := ewf_image.ewf_files[0].GetChunckInfo()
 	fmt.Println("number of chuncks", chunkCount)
 	fmt.Println("sectors per chunck", nofSectorPerChunk)
 	fmt.Println("bytes per sector", nofBytesPerSector)
 	fmt.Println("number of sectors", nofSectors)
+	fmt.Println("toolInfo", toolInfo)
 }
 
 func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks int64) EWF_files {
@@ -68,7 +69,7 @@ func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks in
 				}
 
 				remainingChunks -= 1
-				startChunckId += startChunckId + int64(ewf_image.Chuncksize) //advance to the next chunck
+				startChunckId += 1 //advance to the next chunck
 
 			} else {
 				break
@@ -174,7 +175,7 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 		ewf_file.ParseSegment()
 
 		if ewf_file.IsFirst() {
-			chunkCount, nofSectorPerChunk, nofBytesPerSector, _, _ := ewf_file.GetChunckInfo()
+			chunkCount, nofSectorPerChunk, nofBytesPerSector, _, _, _ := ewf_file.GetChunckInfo()
 			ewf_image.SetChunckInfo(chunkCount, nofSectorPerChunk, nofBytesPerSector)
 
 		}
