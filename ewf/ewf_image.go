@@ -117,13 +117,18 @@ func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) section
 	return ewf_image.ChunckOffsets[chunckId : chunckId+chuncksRequired+1] // add one for boundary
 }
 
+func (ewf_image EWF_Image) IsImageEncase6Type() bool {
+	return ewf_image.ewf_files[0].Sections.head.body.GetAttr("An unknown") == "EnCase" || ewf_image.ewf_files[0].Sections.head.body.GetAttr("Version") == "20201230"
+}
+
 func (ewf_image *EWF_Image) populateChunckOffsets() {
 
 	offsets := make(sections.Table_EntriesPtrs, ewf_image.NofChunks)
 	chuncksProcessed := 0
+	isEncase6ImageType := ewf_image.IsImageEncase6Type()
 	for idx, ewf_file := range ewf_image.ewf_files {
 		ewf_image.ewf_files[idx].FirstChunckId = chuncksProcessed
-		chuncksProcessed = ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed)
+		chuncksProcessed = ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed, isEncase6ImageType)
 
 		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(chuncksProcessed)
 		fmt.Printf("finished segment %s processed chuncks %d\n", ewf_file.Name, chuncksProcessed)

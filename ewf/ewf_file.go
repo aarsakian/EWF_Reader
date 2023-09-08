@@ -172,16 +172,17 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
+func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int, isEncase6ImageType bool) int {
 	tableSections := ewf_file.Sections.Filter("table")
 	fmt.Printf("nof chuncks: \n")
 	baseOffset := uint32(0) //offset from beginning to sectors
 	for _, section := range tableSections {
 		chuncks := section.GetAttr("Table_entries").(sections.Table_Entries)
 		for id := range chuncks {
-			if section.prev.prev != nil {
+			if isEncase6ImageType && section.prev.prev != nil {
 				baseOffset = uint32(section.prev.prev.Descriptor.NextSectionOffs)
 			}
+
 			chunckOffsetsPtrs[pos] = &sections.EWF_Table_Section_Entry{
 				DataOffset:   chuncks[id].DataOffset + baseOffset,
 				IsCompressed: chuncks[id].IsCompressed}
@@ -369,8 +370,8 @@ func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, aske
 
 		}
 
-		data = data[:len(data)-4] //4 last bytes are checksums
-		if idx == 0 {             // first chunck write from asked offset
+		//data = data[:len(data)-4] //4 last bytes are checksums
+		if idx == 0 { // first chunck write from asked offset
 			relativeOffset = int(asked_offset)
 		}
 
