@@ -15,7 +15,7 @@ type EWF_Image struct {
 	ewf_files     EWF_files
 	Chuncksize    uint32
 	NofChunks     uint32
-	ChunckOffsets sections.Table_EntriesPtrs
+	ChunckOffsets sections.Table_Entries
 	CachedChuncks [][]byte
 }
 
@@ -113,7 +113,7 @@ func (ewf_image *EWF_Image) SetChunckInfo(chunkCount uint64, nofSectorPerChunk u
 	ewf_image.NofChunks = uint32(chunkCount)
 }
 
-func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_EntriesPtrs {
+func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_Entries {
 	return ewf_image.ChunckOffsets[chunckId : chunckId+chuncksRequired+1] // add one for boundary
 }
 
@@ -123,12 +123,12 @@ func (ewf_image EWF_Image) IsImageEncase6Type() bool {
 
 func (ewf_image *EWF_Image) populateChunckOffsets() {
 
-	offsets := make(sections.Table_EntriesPtrs, ewf_image.NofChunks)
+	offsets := make(sections.Table_Entries, ewf_image.NofChunks)
 	chuncksProcessed := 0
-	isEncase6ImageType := ewf_image.IsImageEncase6Type()
+
 	for idx, ewf_file := range ewf_image.ewf_files {
 		ewf_image.ewf_files[idx].FirstChunckId = chuncksProcessed
-		chuncksProcessed = ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed, isEncase6ImageType)
+		chuncksProcessed = ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed)
 
 		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(chuncksProcessed)
 		fmt.Printf("finished segment %s processed chuncks %d\n", ewf_file.Name, chuncksProcessed)

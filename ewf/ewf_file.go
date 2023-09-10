@@ -172,20 +172,15 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int, isEncase6ImageType bool) int {
+func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_Entries, pos int) int {
 	tableSections := ewf_file.Sections.Filter("table")
 	fmt.Printf("nof chuncks: \n")
-	baseOffset := uint32(0) //offset from beginning to sectors
+
 	for _, section := range tableSections {
 		chuncks := section.GetAttr("Table_entries").(sections.Table_Entries)
-		for id := range chuncks {
-			if isEncase6ImageType && section.prev.prev != nil {
-				baseOffset = uint32(section.prev.prev.Descriptor.NextSectionOffs)
-			}
+		for _, chunck := range chuncks {
 
-			chunckOffsetsPtrs[pos] = &sections.EWF_Table_Section_Entry{
-				DataOffset:   chuncks[id].DataOffset + baseOffset,
-				IsCompressed: chuncks[id].IsCompressed}
+			chunckOffsetsPtrs[pos] = chunck
 			pos++
 		}
 		//	fmt.Printf("%d \t", len(chuncks))
@@ -352,16 +347,16 @@ func (ewf_file *EWF_file) CloseHandler() {
 
 }
 
-func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, asked_offset int64,
+func (ewf_file EWF_file) LocateData(chuncks sections.Table_Entries, asked_offset int64,
 	dataLen int, buf *bytes.Buffer) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	relativeOffset := 0
-	for idx, chunck := range chuncksPtrs {
-		if idx == len(chuncksPtrs)-1 { // last chunck not part of asked chunck range
+	for idx, chunck := range chuncks {
+		if idx == len(chuncks)-1 { // last chunck not part of asked chunck range
 			break
 		}
-		to := chuncksPtrs[idx+1].DataOffset
+		to := chuncks[idx+1].DataOffset
 		from := chunck.DataOffset
 
 		data := ewf_file.ReadAt(int64(from), uint64(to-from))
@@ -371,6 +366,7 @@ func (ewf_file EWF_file) LocateData(chuncksPtrs sections.Table_EntriesPtrs, aske
 		}
 
 		//data = data[:len(data)-4] //4 last bytes are checksums
+		//fmt.Printf("%d \t", idx)
 		if idx == 0 { // first chunck write from asked offset
 			relativeOffset = int(asked_offset)
 		}
