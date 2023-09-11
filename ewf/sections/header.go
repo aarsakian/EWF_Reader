@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"log"
-	"time"
 
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
@@ -74,7 +73,7 @@ func (ewf_h_section *EWF_Header_Section) Parse(buf []byte) {
 
 	val := Utils.Decompress(buf)
 
-	defer Utils.TimeTrack(time.Now(), "Parsing")
+	//defer Utils.TimeTrack(time.Now(), "Parsing Header Section")
 	line_del, _ := hex.DecodeString("0a")
 	tab_del, err := hex.DecodeString("09")
 	if err != nil {

@@ -1,8 +1,6 @@
 package sections
 
 import (
-	"time"
-
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
@@ -36,7 +34,7 @@ func (ewf_data_section *EWF_Data_Section) GetAttr(string) interface{} {
 }
 
 func (ewf_data_section *EWF_Data_Section) Parse(buf []byte) {
-	defer Utils.TimeTrack(time.Now(), "Parsing")
+	//	defer Utils.TimeTrack(time.Now(), "Parsing Data Section")
 	Utils.Unmarshal(buf, ewf_data_section)
 
 	/*  fmt.Println("Data section",ewf_data_section.body.NofSectorPerChunk, ewf_data_section.body.PALM,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"hash/adler32"
 	"reflect"
-	"time"
 
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
@@ -81,11 +80,10 @@ func (table_header_encase *EWF_Table_Section_Header_EnCase) Parse(buf []byte) {
 
 func (table_entry *EWF_Table_Section_Entry) Parse(buf []byte, table_base_offset uint64) {
 
-	IsCompressed := buf[3]&0x80 == 0x80
+	table_entry.IsCompressed = buf[3]&0x80 == 0x80
 	buf[3] &= 0x7F //exlude MSB
 	table_entry.DataOffset = uint64(Utils.ReadEndian(buf).(uint32)) + table_base_offset
 
-	table_entry.IsCompressed = IsCompressed
 }
 
 func (table_footer *EWF_Table_Section_Footer) Parse(buf []byte) {
@@ -102,7 +100,7 @@ func (ewf_table_section EWF_Table_Section) Verify() bool {
 
 func (ewf_table_section *EWF_Table_Section) Parse(buf []byte) {
 
-	defer Utils.TimeTrack(time.Now(), "Parsing")
+	//defer Utils.TimeTrack(time.Now(), "Parsing Table Section")
 	var table_header_encase *EWF_Table_Section_Header_EnCase = new(EWF_Table_Section_Header_EnCase)
 	table_header_encase.Parse(buf[:24])
 
