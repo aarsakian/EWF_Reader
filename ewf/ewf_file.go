@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
@@ -21,15 +20,14 @@ const NofSections = 200
 type EWF_files []EWF_file
 
 type EWF_file struct {
-	Name            string
-	Handler         *os.File
-	Size            int64
-	hasNext         bool
-	isLast          bool
-	Header          *EWF_Header
-	Sections        *Sections
-	FirstChunckId   int
-	NumberOfChuncks uint32
+	Name          string
+	Handler       *os.File
+	Size          int64
+	hasNext       bool
+	isLast        bool
+	Header        *EWF_Header
+	Sections      *Sections
+	FirstChunckId int
 }
 
 type EWF_Header struct {
@@ -172,21 +170,21 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_Entries, pos int) int {
+func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
 	tableSections := ewf_file.Sections.Filter("table")
-	fmt.Printf("nof chuncks: \n")
+	//fmt.Printf("nof chuncks: \n")
 
 	for _, section := range tableSections {
 		chuncks := section.GetAttr("Table_entries").(sections.Table_Entries)
 		for _, chunck := range chuncks {
-
-			chunckOffsetsPtrs[pos] = chunck
+			current := chunck // change pointer address
+			chunckOffsetsPtrs[pos] = &current
 			pos++
 		}
 		//	fmt.Printf("%d \t", len(chuncks))
 
 	}
-	fmt.Printf("nof table sections %d curPos %d \n", len(tableSections), pos)
+	//	fmt.Printf("nof table sections %d curPos %d \n", len(tableSections), pos)
 	return pos
 
 }
@@ -216,7 +214,7 @@ func (ewf_file EWF_file) IsFirst() bool {
 }
 
 func (ewf_file *EWF_file) ParseHeader() {
-	defer Utils.TimeTrack(time.Now(), "Parsing Segment Header")
+
 	var ewf_header *EWF_Header = new(EWF_Header)
 
 	buf := ewf_file.ReadAt(0, EWF_Header_s)
@@ -251,7 +249,7 @@ func (ewf_file *EWF_file) ParseSegment() {
 		section.Descriptor = s_descriptor
 
 		section.Type = s_descriptor.GetType()
-		fmt.Println(section.Type, cur_offset)
+		//	fmt.Println(section.Type, cur_offset)
 		if !s_descriptor.IsBodyEmpty() && section.Type != "sectors" {
 			buf = ewf_file.ReadAt(cur_offset+EWF_Section_Header_s,
 				s_descriptor.SectionSize-EWF_Section_Header_s) //read section body
@@ -347,7 +345,7 @@ func (ewf_file *EWF_file) CloseHandler() {
 
 }
 
-func (ewf_file EWF_file) LocateData(chuncks sections.Table_Entries, asked_offset int64,
+func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_offset int64,
 	dataLen int, buf *bytes.Buffer) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
@@ -368,9 +366,9 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_Entries, asked_offset
 		//data = data[:len(data)-4] //4 last bytes are checksums
 		//fmt.Printf("%d \t", idx)
 		if idx == 0 { // first chunck write from asked offset
-			relativeOffset = int(asked_offset)
+			relativeOffset = int(from_offset)
 		}
-
+		fmt.Printf("%s %d \t,", data[0:4], idx)
 		remainingSpace := dataLen - buf.Len() // free buffer size
 		if len(data) > remainingSpace {       // user asked a size less than the last chunck
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
