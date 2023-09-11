@@ -12,6 +12,7 @@ import (
 	"log"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -380,29 +381,27 @@ func FindEvidenceFiles(path_ string) []string {
 
 	basePath := filepath.Dir(path_)
 
-	_, fname := filepath.Split(path_)
-
 	Files, err := ioutil.ReadDir(basePath)
 	if err != nil {
 		log.Fatal("ERR", err)
 	}
-	k := 0
-	filenames := make([]string, len(Files))
 
+	var filenames []string
+	r, _ := regexp.Compile("e[a-z0-9]{1,2}")
 	for _, finfo := range Files {
 
-		if !finfo.IsDir() {
+		if finfo.IsDir() {
 
-			if strings.HasPrefix(finfo.Name(), strings.Split(fname, ".")[0]) {
+			continue
+		}
 
-				filenames[k] = filepath.Join(basePath, finfo.Name()) //supply channel
-				//fmt.Println("INFO", basePath+finfo.Name(), strings.Split(fname, ".")[0])
-				k += 1
-			}
+		if r.MatchString(finfo.Name()) {
+
+			filenames = append(filenames, filepath.Join(basePath, finfo.Name())) //supply channel
+			//fmt.Println("INFO", basePath+finfo.Name(), strings.Split(fname, ".")[0])
 
 		}
 	}
-	filenames = filenames[:k]
 
 	return filenames
 
