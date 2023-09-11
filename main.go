@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
@@ -32,18 +33,19 @@ func main() {
 	showImageInfo := flag.Bool("showInfo", false, "show evidence information")
 	showHash := flag.Bool("showHash", false, "show stored hash value")
 	offset := flag.Int64("offset", -1, "offset to read data from the evidence")
-	len := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
+	length := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
+	profile := flag.Bool("profile", false, "profile performance")
 	flag.Parse()
 
 	if *evidencePath == "" {
 		fmt.Println("Evidence filename needed")
 		os.Exit(0)
 	}
-
+	defer Utils.TimeTrack(time.Now(), "finished")
 	filenames := Utils.FindEvidenceFiles(*evidencePath)
-	var ewf_image ewf.EWF_Image
+	ewf_image := ewf.EWF_Image{Profiling: *profile}
+
 	ewf_image.ParseEvidence(filenames)
-	fmt.Printf("about to populate map of chuncks\n")
 
 	if *showImageInfo {
 		ewf_image.ShowInfo()
@@ -58,15 +60,15 @@ func main() {
 		panic("offset exceeds size of data")
 	}
 
-	if *offset+*len > int64(ewf_image.NofChunks)*int64(ewf_image.Chuncksize) {
+	if *offset+*length > int64(ewf_image.NofChunks)*int64(ewf_image.Chuncksize) {
 		panic("len exceeds remaing data area")
 	}
 
-	if *offset != -1 && *len != 0 {
+	if *offset != -1 && *length != 0 {
+		fmt.Printf("data to read %d\n", *length)
+		data := ewf_image.RetrieveData(*offset, *length)
 
-		data := ewf_image.RetrieveData(*offset, *len)
-
-		fmt.Printf("%x\n", data)
+		fmt.Printf("%x\n", data[0:1])
 	}
 
 	if *verify {
