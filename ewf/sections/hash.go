@@ -2,7 +2,6 @@ package sections
 
 import (
 	"reflect"
-	"time"
 
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 
@@ -17,7 +16,7 @@ type EWF_Hash_Section struct {
 
 func (hash_section *EWF_Hash_Section) Parse(buf []byte) {
 
-	defer Utils.TimeTrack(time.Now(), "Parsing")
+	//defer Utils.TimeTrack(time.Now(), "Parsing Hash Section")
 
 	Utils.Unmarshal(buf, hash_section)
 }
