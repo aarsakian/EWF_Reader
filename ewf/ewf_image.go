@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
+	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
 var CHUNK_SIZE int = 32768
@@ -15,11 +16,16 @@ type EWF_Image struct {
 	ewf_files     EWF_files
 	Chuncksize    uint32
 	NofChunks     uint32
-	ChunckOffsets sections.Table_Entries
+	ChunckOffsets sections.Table_EntriesPtrs
 	CachedChuncks [][]byte
+	Profiling     bool
 }
 
 func (ewf_image EWF_Image) RetrieveData(offset int64, length int64) []byte {
+	if ewf_image.Profiling {
+		defer Utils.TimeTrack(time.Now(), "Locating Data")
+	}
+
 	var buf bytes.Buffer
 	buf.Grow(int(length))
 
@@ -53,19 +59,23 @@ func (ewf_image EWF_Image) ShowInfo() {
 }
 
 func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks int64) EWF_files {
-	ewf_filesMap := map[EWF_file]bool{}
+	if ewf_image.Profiling {
+		defer Utils.TimeTrack(time.Now(), "Locating Segments")
+	}
+	ewf_filesMap := map[int]bool{}
 	var ewf_files EWF_files
 	remainingChunks := nofRequestedChunks
 	startChunckId := chunck_id
-	for _, ewf_file := range ewf_image.ewf_files {
-		ewf_filesMap[ewf_file] = false
+	for idx := range ewf_image.ewf_files {
+		ewf_filesMap[idx] = false
 		for {
-			if startChunckId >= int64(ewf_file.FirstChunckId) &&
-				startChunckId < int64(ewf_file.NumberOfChuncks) { //located in this segment
+			if idx == len(ewf_image.ewf_files)-1 && startChunckId >= int64(ewf_image.ewf_files[idx].FirstChunckId) ||
+				idx < len(ewf_image.ewf_files) && startChunckId >= int64(ewf_image.ewf_files[idx].FirstChunckId) &&
+					startChunckId < int64(ewf_image.ewf_files[idx+1].FirstChunckId) { //located in this segment
 				// workaround to keep unique values
-				if !ewf_filesMap[ewf_file] {
-					ewf_files = append(ewf_files, ewf_file)
-					ewf_filesMap[ewf_file] = true
+				if !ewf_filesMap[idx] {
+					ewf_files = append(ewf_files, ewf_image.ewf_files[idx])
+					ewf_filesMap[idx] = true
 				}
 
 				remainingChunks -= 1
@@ -113,7 +123,7 @@ func (ewf_image *EWF_Image) SetChunckInfo(chunkCount uint64, nofSectorPerChunk u
 	ewf_image.NofChunks = uint32(chunkCount)
 }
 
-func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_Entries {
+func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_EntriesPtrs {
 	return ewf_image.ChunckOffsets[chunckId : chunckId+chuncksRequired+1] // add one for boundary
 }
 
@@ -122,16 +132,17 @@ func (ewf_image EWF_Image) IsImageEncase6Type() bool {
 }
 
 func (ewf_image *EWF_Image) populateChunckOffsets() {
-
-	offsets := make(sections.Table_Entries, ewf_image.NofChunks)
+	if ewf_image.Profiling {
+		defer Utils.TimeTrack(time.Now(), "populating chuncks map")
+	}
+	offsets := make(sections.Table_EntriesPtrs, ewf_image.NofChunks)
 	chuncksProcessed := 0
 
 	for idx, ewf_file := range ewf_image.ewf_files {
 		ewf_image.ewf_files[idx].FirstChunckId = chuncksProcessed
 		chuncksProcessed = ewf_file.PopulateChunckOffsets(offsets, chuncksProcessed)
 
-		ewf_image.ewf_files[idx].NumberOfChuncks = uint32(chuncksProcessed)
-		fmt.Printf("finished segment %s processed chuncks %d\n", ewf_file.Name, chuncksProcessed)
+		//fmt.Printf("finished segment %s processed chuncks %d\n", ewf_file.Name, chuncksProcessed)
 	}
 	ewf_image.ChunckOffsets = offsets
 }
@@ -161,10 +172,11 @@ func (ewf_image *EWF_Image) CacheIt(chunckId int, chuncksRequired int, buf *byte
 }
 
 func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
-	var ewf_files EWF_files
-
-	for _, filename := range filenames {
-		start := time.Now()
+	ewf_files := make(EWF_files, len(filenames))
+	if ewf_image.Profiling {
+		Utils.TimeTrack(time.Now(), fmt.Sprintf("Parsed segments  %d in", len(filenames)))
+	}
+	for idx, filename := range filenames {
 
 		ewf_file := EWF_file{Name: filename}
 
@@ -178,18 +190,14 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 		}
 
 		ewf_file.ParseSegment()
+		fmt.Printf("Parsed segment %s\n", filename)
 
 		if ewf_file.IsFirst() {
 			chunkCount, nofSectorPerChunk, nofBytesPerSector, _, _, _ := ewf_file.GetChunckInfo()
 			ewf_image.SetChunckInfo(chunkCount, nofSectorPerChunk, nofBytesPerSector)
 
 		}
-
-		elapsed := time.Since(start)
-		fmt.Printf("Parsed Evidence %s in %s\n ", filename, elapsed)
-
-		ewf_files = append(ewf_files, ewf_file)
-
+		ewf_files[idx] = ewf_file
 		ewf_file.CloseHandler()
 
 		if ewf_file.IsLast() {
@@ -197,8 +205,9 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 		}
 
 	}
-	ewf_image.ewf_files = ewf_files
 
+	ewf_image.ewf_files = ewf_files
+	fmt.Printf("about to populate map of chuncks\n")
 	ewf_image.populateChunckOffsets()
 
 	ewf_image.CachedChuncks = make([][]byte, ewf_image.NofChunks)
