@@ -387,7 +387,7 @@ func FindEvidenceFiles(path_ string) []string {
 	}
 
 	var filenames []string
-	r, _ := regexp.Compile("e[a-z0-9]{1,2}")
+	r, _ := regexp.Compile("e|E[a-z0-9]{1,2}")
 	for _, finfo := range Files {
 
 		if finfo.IsDir() {
