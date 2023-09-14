@@ -171,6 +171,7 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 }
 
 func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
+	fmt.Println(ewf_file.Name)
 	tableSections := ewf_file.Sections.Filter("table")
 	//fmt.Printf("nof chuncks: \n")
 
@@ -349,32 +350,32 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 	dataLen int, buf *bytes.Buffer) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
-	relativeOffset := 0
+	relativeOffset := int(from_offset)
+
 	for idx, chunck := range chuncks {
-		if idx == len(chuncks)-1 { // last chunck not part of asked chunck range
+		if idx == len(chuncks)-1 { //  last chunck not part of asked chunck range
 			break
 		}
+
 		to := chuncks[idx+1].DataOffset
 		from := chunck.DataOffset
-
+		//fmt.Printf("from %d \t", from)
 		data := ewf_file.ReadAt(int64(from), uint64(to-from))
 		if chunck.IsCompressed {
 			data = Utils.Decompress(data)
+			//data = data[:len(data)-4] //checksum?
 
 		}
 
-		//data = data[:len(data)-4] //4 last bytes are checksums
-		//fmt.Printf("%d \t", idx)
-		if idx == 0 { // first chunck write from asked offset
-			relativeOffset = int(from_offset)
-		}
-		fmt.Printf("%s %d \t,", data[0:4], idx)
+		//fmt.Printf("%s %d \t,", data[0:4], idx)
 		remainingSpace := dataLen - buf.Len() // free buffer size
-		if len(data) > remainingSpace {       // user asked a size less than the last chunck
+
+		if len(data) > remainingSpace && remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunck
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
 		}
 		buf.Write(data[relativeOffset:])
+		relativeOffset = 0
 
 	}
 
