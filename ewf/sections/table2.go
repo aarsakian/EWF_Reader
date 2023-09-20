@@ -23,6 +23,8 @@ EnCase 6 DataOffset points from beginning of the table base offset.
 type EWF_Table_Section_Entry struct {
 	DataOffset   uint64 "MSB indicates if chunk data is (un)compressed (0)/1 offset relative to the start of the fileit is located in the preseding sectors section "
 	IsCompressed bool   "1 -> Compressed"
+	IsCached     bool
+	DataChuck    *DataChuck
 }
 
 type EWF_Table_Section_Footer struct {
@@ -81,6 +83,7 @@ func (table_header_encase *EWF_Table_Section_Header_EnCase) Parse(buf []byte) {
 func (table_entry *EWF_Table_Section_Entry) Parse(buf []byte, table_base_offset uint64) {
 
 	table_entry.IsCompressed = buf[3]&0x80 == 0x80
+	table_entry.IsCached = false
 	buf[3] &= 0x7F //exlude MSB
 	table_entry.DataOffset = uint64(Utils.ReadEndian(buf).(uint32)) + table_base_offset
 
