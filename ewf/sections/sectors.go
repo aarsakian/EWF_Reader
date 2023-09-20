@@ -7,7 +7,7 @@ package sections
 type DataChucks []DataChuck
 
 type DataChuck struct {
-	data []byte
+	Data []byte
 }
 
 type EWF_Sectors_Section struct {
@@ -25,5 +25,5 @@ func (ewf_sectors_section *EWF_Sectors_Section) GetAttr(string) interface{} {
 
 func (ewf_sectors_section *EWF_Sectors_Section) Parse(buf []byte) {
 
-	ewf_sectors_section.DataChucks = append(ewf_sectors_section.DataChucks, DataChuck{data: buf})
+	ewf_sectors_section.DataChucks = append(ewf_sectors_section.DataChucks, DataChuck{Data: buf})
 }
