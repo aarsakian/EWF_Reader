@@ -351,20 +351,24 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	relativeOffset := int(from_offset)
-
+	var data []byte
 	for idx, chunck := range chuncks {
 		if idx == len(chuncks)-1 { //  last chunck not part of asked chunck range
 			break
 		}
 
-		to := chuncks[idx+1].DataOffset
-		from := chunck.DataOffset
-		//fmt.Printf("from %d \t", from)
-		data := ewf_file.ReadAt(int64(from), uint64(to-from))
-		if chunck.IsCompressed {
-			data = Utils.Decompress(data)
-			//data = data[:len(data)-4] //checksum?
+		if chunck.IsCached {
+			data = chunck.DataChuck.Data
+		} else {
+			to := chuncks[idx+1].DataOffset
+			from := chunck.DataOffset
+			//fmt.Printf("from %d \t", from)
+			data = ewf_file.ReadAt(int64(from), uint64(to-from))
+			if chunck.IsCompressed {
+				data = Utils.Decompress(data)
+				//data = data[:len(data)-4] //checksum?
 
+			}
 		}
 
 		//fmt.Printf("%s %d \t,", data[0:4], idx)
