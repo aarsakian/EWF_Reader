@@ -22,6 +22,39 @@ import (
 
 type NoNull string
 
+type Queue struct { //ring buffer
+	Elements map[int]int
+	tail     int
+	head     int
+	Capacity int
+}
+
+func (queue *Queue) EnQueue(element int) {
+	queue.Elements[queue.tail] = element
+	queue.tail = (queue.tail + 1) % queue.Capacity
+
+}
+
+func (queue Queue) IsEmpty() bool {
+	return queue.head == queue.tail
+}
+
+func (queue Queue) IsFull() bool {
+	return queue.head == (queue.tail+1)%queue.Capacity
+}
+func (queue *Queue) DeQueue() int {
+
+	if !queue.IsEmpty() {
+		element := queue.Elements[queue.head]
+		queue.head = (queue.head + 1) % queue.Capacity
+
+		return element
+	} else {
+		return 0
+	}
+
+}
+
 func Parse(buf *bytes.Reader, val interface{}) {
 	//target is val
 	err := binary.Read(buf, binary.LittleEndian, val)
