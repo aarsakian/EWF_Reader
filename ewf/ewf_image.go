@@ -11,17 +11,19 @@ import (
 )
 
 var CHUNK_SIZE int = 32768
+var NOFCHUNCKS int = 10000
 
 type EWF_Image struct {
-	ewf_files     EWF_files
-	Chuncksize    uint32
-	NofChunks     uint32
-	ChunckOffsets sections.Table_EntriesPtrs
-	CachedChuncks [][]byte
-	Profiling     bool
+	ewf_files       EWF_files
+	Chuncksize      uint32
+	NofChunks       uint32
+	ChunckOffsets   sections.Table_EntriesPtrs
+	QueuedChunckIds Utils.Queue
+
+	Profiling bool
 }
 
-func (ewf_image EWF_Image) RetrieveData(offset int64, length int64) []byte {
+func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	if ewf_image.Profiling {
 		defer Utils.TimeTrack(time.Now(), "Locating Data")
 	}
@@ -33,10 +35,9 @@ func (ewf_image EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	relativeOffset := offset % int64(ewf_image.Chuncksize) // start from this offset from first chunck
 	chunckId := offset / int64(ewf_image.Chuncksize)       // the start id with respect to asked offset
 
-	// length exceeds chunck or when window of data is shifted so that it requires one more next chunck
 	if length+relativeOffset < int64(ewf_image.Chuncksize) { // data less than chunck
 		chuncksRequired = length/int64(ewf_image.Chuncksize) + 1 // how many chuncks needed to retrieve data
-	} else {
+	} else { // length exceeds chunck or when window of data is shifted so that it requires one more next chunck
 		chuncksRequired = length/int64(ewf_image.Chuncksize) + 2 // how many chuncks needed to retri
 	}
 
@@ -154,49 +155,40 @@ func (ewf_image *EWF_Image) populateChunckOffsets() {
 
 func (ewf_image EWF_Image) IsChunckCached(chunckId int) bool {
 
-	if ewf_image.CachedChuncks[chunckId] == nil {
-		return false
-	}
+	return ewf_image.ChunckOffsets[chunckId].IsCached
 
-	return true
-}
-
-func (ewf_image EWF_Image) RetrieveFromCache(chunckId int, chuncksRequired int) []int {
-	var cachedChuncksIds []int
-	for id := 0; id < chuncksRequired; id++ {
-		if !ewf_image.IsChunckCached(chunckId + id) {
-			continue
-		}
-		cachedChuncksIds = append(cachedChuncksIds, chunckId+id)
-	}
-	return cachedChuncksIds
 }
 
 func (ewf_image *EWF_Image) CacheIt(chunckId int, chuncksRequired int, relivativeOffset int, buf *bytes.Buffer) {
-	for id := 0; id < chuncksRequired-1; id++ { //last chunck is used as end offset skip it
-		if ewf_image.IsChunckCached(chunckId + chunckId) {
+	data := buf.Bytes()
+	for id := 0; id < chuncksRequired; id++ {
+		if ewf_image.IsChunckCached(chunckId + id) {
 			continue
 		}
 
 		if buf.Len() < int(ewf_image.Chuncksize) { //cache only when buffer equals the chunck size
 			continue
 		}
-		if (id+1)*int(ewf_image.Chuncksize) > len(buf.Bytes()) { // reached end last chunck was partially asked
+		//last chunck is used as end offset skip it or next exceeds available buffer
+		if id == chuncksRequired-1 || (id+1)*int(ewf_image.Chuncksize) > len(data) {
 			break
 		}
-		if id == 0 && relivativeOffset == 0 { //cache first chunck only when offset is zero whole chunck requested
-			ewf_image.ChunckOffsets[chunckId+id].IsCached = true
-			dataChunck := sections.DataChuck{Data: buf.Bytes()[id*int(ewf_image.Chuncksize) : (id+1)*int(ewf_image.Chuncksize)]}
-			ewf_image.ChunckOffsets[chunckId+id].DataChuck = &dataChunck
-		} else if id == chuncksRequired-1 && len(buf.Bytes()[id*int(ewf_image.Chuncksize):]) == int(ewf_image.Chuncksize) { // cache only when last chunck is complete
-			ewf_image.ChunckOffsets[chunckId+id].IsCached = true
-			dataChunck := sections.DataChuck{Data: buf.Bytes()[id*int(ewf_image.Chuncksize):]}
-			ewf_image.ChunckOffsets[chunckId+id].DataChuck = &dataChunck
-		} else {
-			ewf_image.ChunckOffsets[chunckId+id].IsCached = true
-			dataChunck := sections.DataChuck{Data: buf.Bytes()[id*int(ewf_image.Chuncksize) : (id+1)*int(ewf_image.Chuncksize)]}
-			ewf_image.ChunckOffsets[chunckId+id].DataChuck = &dataChunck
+
+		if id == 0 && relivativeOffset != 0 { // first chunck not complete skip it
+			continue
 		}
+		//
+		if ewf_image.QueuedChunckIds.IsFull() {
+			cachedChunckId := ewf_image.QueuedChunckIds.DeQueue()
+			ewf_image.ChunckOffsets[cachedChunckId].IsCached = false
+			ewf_image.ChunckOffsets[cachedChunckId].DataChuck = nil
+		}
+
+		ewf_image.QueuedChunckIds.EnQueue(chunckId + id)
+		ewf_image.ChunckOffsets[chunckId+id].IsCached = true
+
+		dataChunck := sections.DataChuck{Data: data[id*int(ewf_image.Chuncksize) : (id+1)*int(ewf_image.Chuncksize)]}
+		ewf_image.ChunckOffsets[chunckId+id].DataChuck = &dataChunck
 
 	}
 }
@@ -235,12 +227,11 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 		}
 
 	}
-
+	elements := make(map[int]int, NOFCHUNCKS)
+	ewf_image.QueuedChunckIds = Utils.Queue{Elements: elements, Capacity: NOFCHUNCKS}
 	ewf_image.ewf_files = ewf_files
 	fmt.Printf("about to populate map of chuncks\n")
 	ewf_image.populateChunckOffsets()
-
-	ewf_image.CachedChuncks = make([][]byte, ewf_image.NofChunks)
 
 }
 
