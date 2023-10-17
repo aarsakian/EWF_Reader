@@ -347,7 +347,7 @@ func (ewf_file *EWF_file) CloseHandler() {
 }
 
 func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_offset int64,
-	dataLen int, buf *bytes.Buffer) {
+	dataLen int, buf *bytes.Buffer, chunck_size int) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	relativeOffset := int(from_offset)
@@ -365,9 +365,10 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 			//fmt.Printf("from %d \t", from)
 			data = ewf_file.ReadAt(int64(from), uint64(to-from))
 			if chunck.IsCompressed {
-				data = Utils.Decompress(data)
-				//data = data[:len(data)-4] //checksum?
-
+				if chunck.IsCompressed {
+					data = Utils.Decompress(data)
+					data = data[:chunck_size] // when checksum is included real size is chunck_size +4
+				}
 			}
 		}
 
