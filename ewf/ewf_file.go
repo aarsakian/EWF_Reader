@@ -365,11 +365,9 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 			//fmt.Printf("from %d \t", from)
 			data = ewf_file.ReadAt(int64(from), uint64(to-from))
 			if chunck.IsCompressed {
-				if chunck.IsCompressed {
-					data = Utils.Decompress(data)
-					data = data[:chunck_size] // when checksum is included real size is chunck_size +4
-				}
+				data = Utils.Decompress(data)
 			}
+			data = data[:chunck_size] // when checksum is included real size is chunck_size +4
 		}
 
 		//fmt.Printf("%s %d \t,", data[0:4], idx)
