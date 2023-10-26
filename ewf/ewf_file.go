@@ -56,7 +56,7 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 	var buf []byte
 	for _, table_section := range table_sections {
 		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
-		nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header).NofEntries)
+		nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header_EnCase).NofEntries)
 		for idx, chunck := range table_entries {
 
 			if idx == nofTable_entries-1 { // last entry
@@ -86,18 +86,19 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 }
 
 func (ewf_file EWF_file) Verify(chunk_size int) bool {
+	fmt.Printf("Verifying %s\n", ewf_file.Name)
 	table_sections := ewf_file.Sections.Filter("table")
 
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	var to, from uint64
 	var buf []byte
-	deflated_data := make([]byte, chunk_size)
+	var deflated_data []byte
 	for _, table_section := range table_sections {
 
 		table_entries := table_section.GetAttr("Table_entries").(sections.Table_Entries)
 		for idx, chunck := range table_entries {
-			nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header).NofEntries)
+			nofTable_entries := int(table_section.GetAttr("Table_header").(*sections.EWF_Table_Section_Header_EnCase).NofEntries)
 			if idx == nofTable_entries-1 { // last entry
 				//working with previous section since offsets refer to sectors section
 
