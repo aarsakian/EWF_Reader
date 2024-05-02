@@ -172,7 +172,6 @@ func (ewf_file EWF_file) GetChunck(chunck_id int) sections.EWF_Table_Section_Ent
 }
 
 func (ewf_file EWF_file) PopulateChunckOffsets(chunckOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
-	fmt.Println(ewf_file.Name)
 	tableSections := ewf_file.Sections.Filter("table")
 	//fmt.Printf("nof chuncks: \n")
 
