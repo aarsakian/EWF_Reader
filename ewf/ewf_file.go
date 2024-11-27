@@ -69,7 +69,12 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 
 			from := uint64(chunck.DataOffset)
 
-			buf = ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
+			if to < from { //reached end of ewf_file
+				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(buffer.Len()))
+			} else {
+				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(to-from))
+			}
+
 			if chunck.IsCompressed {
 
 				buf = Utils.Decompress(buf)
@@ -85,7 +90,7 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 
 }
 
-func (ewf_file EWF_file) Verify(chunk_size int) bool {
+func (ewf_file EWF_file) Verify(chunck_size int) bool {
 	fmt.Printf("Verifying %s\n", ewf_file.Name)
 	table_sections := ewf_file.Sections.Filter("table")
 
@@ -109,7 +114,11 @@ func (ewf_file EWF_file) Verify(chunk_size int) bool {
 			}
 			from = uint64(chunck.DataOffset)
 
-			buf = ewf_file.ReadAt(int64(chunck.DataOffset), to-from)
+			if to < from { //reached end of ewf_file
+				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(chunck_size))
+			} else {
+				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(to-from))
+			}
 
 			if !chunck.IsCompressed {
 				continue
@@ -362,8 +371,13 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 		} else {
 			to := chuncks[idx+1].DataOffset
 			from := chunck.DataOffset
-			//fmt.Printf("from %d \t", from)
-			data = ewf_file.ReadAt(int64(from), uint64(to-from))
+
+			if to < from { //reached end of ewf_file
+				data = ewf_file.ReadAt(int64(from), uint64(chunck_size))
+			} else {
+				data = ewf_file.ReadAt(int64(from), uint64(to-from))
+			}
+
 			if chunck.IsCompressed {
 				data = Utils.Decompress(data)
 			}
