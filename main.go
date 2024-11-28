@@ -8,7 +8,7 @@ import (
 
 	"github.com/aarsakian/EWF_Reader/ewf"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
-	EWF_Readerlogger "github.com/aarsakian/EWF_Reader/logger"
+	"github.com/aarsakian/EWF_Reader/logger"
 )
 
 var MediaTypes = map[uint]string{0x00: "Removable Storage Media",
@@ -48,7 +48,7 @@ func main() {
 	if *logactive {
 		now := time.Now()
 		logfilename := "logs" + now.Format("2006-01-02T15_04_05") + ".txt"
-		EWF_Readerlogger.InitializeLogger(*logactive, logfilename)
+		logger.InitializeLogger(*logactive, logfilename)
 
 	}
 
