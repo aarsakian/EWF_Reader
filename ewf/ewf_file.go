@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aarsakian/EWF_Reader/ewf/logger"
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
@@ -70,8 +71,12 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 			from := uint64(chunck.DataOffset)
 
 			if to < from { //reached end of ewf_file
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d\n",
+					chunck.DataOffset, buffer.Len()))
 				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(buffer.Len()))
 			} else {
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d\n",
+					chunck.DataOffset, to-from))
 				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(to-from))
 			}
 
@@ -115,8 +120,12 @@ func (ewf_file EWF_file) Verify(chunck_size int) bool {
 			from = uint64(chunck.DataOffset)
 
 			if to < from { //reached end of ewf_file
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d\n",
+					chunck.DataOffset, chunck_size))
 				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(chunck_size))
 			} else {
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d\n",
+					chunck.DataOffset, to-from))
 				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(to-from))
 			}
 
@@ -373,8 +382,12 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 			from := chunck.DataOffset
 
 			if to < from { //reached end of ewf_file
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d\n",
+					chunck.DataOffset, chunck_size))
 				data = ewf_file.ReadAt(int64(from), uint64(chunck_size))
 			} else {
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d\n",
+					chunck.DataOffset, to-from))
 				data = ewf_file.ReadAt(int64(from), uint64(to-from))
 			}
 
