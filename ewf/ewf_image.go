@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aarsakian/EWF_Reader/ewf/logger"
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
@@ -46,6 +47,8 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	firstChunckId := int64(0)
 	for ewf_file, ewf_file_Nofchuncks := range ewf_filesMap {
 		ewf_file_chuncks := chuncks[firstChunckId : ewf_file_Nofchuncks+1]
+
+		logger.EWF_Readerlogger.Info(fmt.Sprintf("File %s \n", ewf_file.Name))
 
 		ewf_file.LocateData(ewf_file_chuncks, relativeOffset, int(length), &buf, int(ewf_image.Chuncksize))
 
