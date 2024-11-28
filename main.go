@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf"
+	EWF_Readerlogger "github.com/aarsakian/EWF_Reader/ewf/logger"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
 )
 
@@ -35,12 +36,22 @@ func main() {
 	offset := flag.Int64("offset", -1, "offset to read data from the evidence")
 	length := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
 	profile := flag.Bool("profile", false, "profile performance")
+	logactive := flag.Bool("log", false, "log activity")
+
 	flag.Parse()
 
 	if *evidencePath == "" {
 		fmt.Println("Evidence filename needed")
 		os.Exit(0)
 	}
+
+	if *logactive {
+		now := time.Now()
+		logfilename := "logs" + now.Format("2006-01-02T15_04_05") + ".txt"
+		EWF_Readerlogger.InitializeLogger(*logactive, logfilename)
+
+	}
+
 	defer Utils.TimeTrack(time.Now(), "finished")
 	filenames := Utils.FindEvidenceFiles(*evidencePath)
 	ewf_image := ewf.EWF_Image{Profiling: *profile}
