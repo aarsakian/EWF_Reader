@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aarsakian/EWF_Reader/ewf/logger"
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
+	"github.com/aarsakian/EWF_Reader/logger"
 )
 
 var CHUNK_SIZE int = 32768

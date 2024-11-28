@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf"
-	EWF_Readerlogger "github.com/aarsakian/EWF_Reader/ewf/logger"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
+	EWF_Readerlogger "github.com/aarsakian/EWF_Reader/logger"
 )
 
 var MediaTypes = map[uint]string{0x00: "Removable Storage Media",

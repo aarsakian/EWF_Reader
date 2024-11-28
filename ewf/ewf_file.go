@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aarsakian/EWF_Reader/ewf/logger"
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
+	"github.com/aarsakian/EWF_Reader/logger"
 )
 
 const EWF_Section_Header_s = 76
