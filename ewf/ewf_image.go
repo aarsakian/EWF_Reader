@@ -48,7 +48,7 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	for ewf_file, ewf_file_Nofchuncks := range ewf_filesMap {
 		ewf_file_chuncks := chuncks[firstChunckId : ewf_file_Nofchuncks+1]
 
-		logger.EWF_Readerlogger.Info(fmt.Sprintf("File %s \n", ewf_file.Name))
+		logger.EWF_Readerlogger.Info(fmt.Sprintf("File %s ", ewf_file.Name))
 
 		ewf_file.LocateData(ewf_file_chuncks, relativeOffset, int(length), &buf, int(ewf_image.Chuncksize))
 
