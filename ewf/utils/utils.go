@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -414,7 +414,7 @@ func FindEvidenceFiles(path_ string) []string {
 
 	basePath := filepath.Dir(path_)
 
-	Files, err := ioutil.ReadDir(basePath)
+	Files, err := os.ReadDir(basePath)
 	if err != nil {
 		log.Fatal("ERR", err)
 	}
