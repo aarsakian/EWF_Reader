@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	// "io/ioutil"
 )
@@ -23,32 +24,32 @@ import (
 type NoNull string
 
 type Queue struct { //ring buffer
-	Elements map[int]int
+	Elements sync.Map
 	tail     int
 	head     int
 	Capacity int
 }
 
 func (queue *Queue) EnQueue(element int) {
-	queue.Elements[queue.tail] = element
+	queue.Elements.Store(queue.tail, element)
 	queue.tail = (queue.tail + 1) % queue.Capacity
 
 }
 
-func (queue Queue) IsEmpty() bool {
+func (queue *Queue) IsEmpty() bool {
 	return queue.head == queue.tail
 }
 
-func (queue Queue) IsFull() bool {
+func (queue *Queue) IsFull() bool {
 	return queue.head == (queue.tail+1)%queue.Capacity
 }
 func (queue *Queue) DeQueue() int {
 
 	if !queue.IsEmpty() {
-		element := queue.Elements[queue.head]
+		element, _ := queue.Elements.Load(queue.head)
 		queue.head = (queue.head + 1) % queue.Capacity
 
-		return element
+		return element.(int)
 	} else {
 		return 0
 	}

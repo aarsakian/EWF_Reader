@@ -60,7 +60,7 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	return buf.Bytes()
 }
 
-func (ewf_image EWF_Image) ShowInfo() {
+func (ewf_image *EWF_Image) ShowInfo() {
 	chunkCount, nofSectorPerChunk, nofBytesPerSector, nofSectors, toolInfo, _ := ewf_image.ewf_files[0].GetChunckInfo()
 	fmt.Println("number of chuncks", chunkCount)
 	fmt.Println("sectors per chunck", nofSectorPerChunk)
@@ -69,7 +69,7 @@ func (ewf_image EWF_Image) ShowInfo() {
 	fmt.Println("toolInfo", toolInfo)
 }
 
-func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks int64) map[EWF_file]int64 {
+func (ewf_image *EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks int64) map[EWF_file]int64 {
 	if ewf_image.Profiling {
 		defer Utils.TimeTrack(time.Now(), "Locating Segments")
 	}
@@ -102,7 +102,7 @@ func (ewf_image EWF_Image) LocateSegments(chunck_id int64, nofRequestedChunks in
 	return ewf_filesMap
 }
 
-func (ewf_image EWF_Image) VerifyHash() bool {
+func (ewf_image *EWF_Image) VerifyHash() bool {
 
 	var buf bytes.Buffer
 	buf.Grow(int(ewf_image.NofChunks * ewf_image.Chuncksize))
@@ -117,7 +117,7 @@ func (ewf_image EWF_Image) VerifyHash() bool {
 
 }
 
-func (ewf_image EWF_Image) Verify() bool {
+func (ewf_image *EWF_Image) Verify() bool {
 
 	for _, ewf_file := range ewf_image.ewf_files {
 		if !ewf_file.Verify(int(ewf_image.Chuncksize)) {
@@ -132,11 +132,11 @@ func (ewf_image *EWF_Image) SetChunckInfo(chunkCount uint64, nofSectorPerChunk u
 	ewf_image.NofChunks = uint32(chunkCount)
 }
 
-func (ewf_image EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_EntriesPtrs {
+func (ewf_image *EWF_Image) GetChuncks(chunckId int, chuncksRequired int) sections.Table_EntriesPtrs {
 	return ewf_image.ChunckOffsets[chunckId : chunckId+chuncksRequired+1] // add one for boundary
 }
 
-func (ewf_image EWF_Image) IsImageEncase6Type() bool {
+func (ewf_image *EWF_Image) IsImageEncase6Type() bool {
 	return ewf_image.ewf_files[0].Sections.head.body.GetAttr("An unknown") == "EnCase" || ewf_image.ewf_files[0].Sections.head.body.GetAttr("Version") == "20201230"
 }
 
@@ -156,7 +156,7 @@ func (ewf_image *EWF_Image) populateChunckOffsets() {
 	ewf_image.ChunckOffsets = offsets
 }
 
-func (ewf_image EWF_Image) IsChunckCached(chunckId int) bool {
+func (ewf_image *EWF_Image) IsChunckCached(chunckId int) bool {
 
 	return ewf_image.ChunckOffsets[chunckId].IsCached
 
@@ -230,15 +230,15 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 		}
 
 	}
-	elements := make(map[int]int, NOFCHUNCKS)
-	ewf_image.QueuedChunckIds = Utils.Queue{Elements: elements, Capacity: NOFCHUNCKS}
+
+	ewf_image.QueuedChunckIds = Utils.Queue{Capacity: NOFCHUNCKS}
 	ewf_image.ewf_files = ewf_files
 	fmt.Printf("about to populate map of chuncks\n")
 	ewf_image.populateChunckOffsets()
 
 }
 
-func (ewf_image EWF_Image) GetHash() string {
+func (ewf_image *EWF_Image) GetHash() string {
 	// last file has hash info
 	ewf_file := ewf_image.ewf_files[len(ewf_image.ewf_files)-1] // hash section always in last segment
 	return ewf_file.GetHash()
