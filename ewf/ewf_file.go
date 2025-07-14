@@ -71,12 +71,12 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 			from := uint64(chunck.DataOffset)
 
 			if to < from { //reached end of ewf_file
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d",
-					chunck.DataOffset, buffer.Len()))
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
+					chunck.DataOffset, buffer.Len(), idx))
 				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(buffer.Len()))
 			} else {
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d",
-					chunck.DataOffset, to-from))
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
+					chunck.DataOffset, to-from, idx))
 				buf = ewf_file.ReadAt(int64(chunck.DataOffset), uint64(to-from))
 			}
 
@@ -86,7 +86,7 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 			} else {
 				buf = buf[:len(buf)-4] //last 4 bytes checksum
 			}
-
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Writing to buffer %d ", len(buf)))
 			buffer.Write(buf)
 
 		}
