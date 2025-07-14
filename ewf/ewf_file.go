@@ -382,12 +382,12 @@ func (ewf_file EWF_file) LocateData(chuncks sections.Table_EntriesPtrs, from_off
 			from := chunck.DataOffset
 
 			if to < from { //reached end of ewf_file
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d",
-					chunck.DataOffset, chunck_size))
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
+					chunck.DataOffset, chunck_size, idx))
 				data = ewf_file.ReadAt(int64(from), uint64(chunck_size))
 			} else {
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d",
-					chunck.DataOffset, to-from))
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
+					chunck.DataOffset, to-from, idx))
 				data = ewf_file.ReadAt(int64(from), uint64(to-from))
 			}
 
