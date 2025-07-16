@@ -387,12 +387,12 @@ func (ewf_file EWF_file) LocateDataAlt(chunks sections.Table_EntriesPtrs, from_o
 
 				if to < from { //reached end of ewf_file
 
-					logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d chan len %d",
+					logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
 						chunk.DataOffset, chunk_size, idx, len(chunkDataCH)))
 
 					chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(chunk_size)), IsCompressed: chunk.IsCompressed, Id: idx}
 				} else {
-					logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d chan len %d",
+					logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
 						chunk.DataOffset, to-from, idx, len(chunkDataCH)))
 
 					chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(to-from)), IsCompressed: chunk.IsCompressed, Id: idx}

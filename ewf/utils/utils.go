@@ -297,7 +297,7 @@ func DecompressCH(in <-chan ChunkData, out chan<- Result, done chan<- bool) {
 					fmt.Println(err)
 
 				}
-				logger.EWF_Readerlogger.Error(fmt.Sprintf("%s while decompressing %d", err, len(val.Data)))
+				logger.EWF_Readerlogger.Error(fmt.Sprintf("%s while decompressing Id %d", err, val.Id))
 				log.Fatal(err)
 			}
 			defer r.Close()
