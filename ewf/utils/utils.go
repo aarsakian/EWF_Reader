@@ -293,10 +293,11 @@ func DecompressCH(in <-chan ChunkData, out chan<- Result, done chan<- bool) {
 
 			if err != nil {
 				if err == io.EOF {
+					logger.EWF_Readerlogger.Error(err)
 					fmt.Println(err)
 
 				}
-
+				logger.EWF_Readerlogger.Error(err)
 				log.Fatal(err)
 			}
 			defer r.Close()
@@ -304,7 +305,7 @@ func DecompressCH(in <-chan ChunkData, out chan<- Result, done chan<- bool) {
 			bytesRead += lent
 			//	fmt.Println(":EM", bytesRead, len(val), int(bytesRead) > len(val))
 			if err != nil {
-				//fmt.Println(err)
+				logger.EWF_Readerlogger.Error(err)
 				log.Fatal(err)
 
 			}
