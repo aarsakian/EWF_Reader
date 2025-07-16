@@ -37,6 +37,7 @@ func main() {
 	length := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
 	profile := flag.Bool("profile", false, "profile performance")
 	logactive := flag.Bool("log", false, "log activity")
+	out := flag.String("out", "", "file to write to")
 
 	flag.Parse()
 
@@ -54,9 +55,13 @@ func main() {
 
 	defer Utils.TimeTrack(time.Now(), "finished")
 	filenames := Utils.FindEvidenceFiles(*evidencePath)
+
 	ewf_image := ewf.EWF_Image{Profiling: *profile}
 
+	fmt.Printf("Parsing %d evidence files \n", len(filenames))
+	now := time.Now()
 	ewf_image.ParseEvidence(filenames)
+	fmt.Printf("Parsed evidence %d files in %f secs\n", len(filenames), time.Since(now).Seconds())
 
 	if *showImageInfo {
 		ewf_image.ShowInfo()
@@ -67,19 +72,27 @@ func main() {
 		fmt.Println(hash)
 	}
 
-	if *offset > int64(ewf_image.NofChunks)*int64(ewf_image.Chuncksize) {
+	if *offset > int64(ewf_image.NofChunks)*int64(ewf_image.Chunksize) {
 		panic("offset exceeds size of data")
 	}
 
-	if *offset+*length > int64(ewf_image.NofChunks)*int64(ewf_image.Chuncksize) {
+	if *offset+*length > int64(ewf_image.NofChunks)*int64(ewf_image.Chunksize) {
 		panic("len exceeds remaing data area")
 	}
 
 	if *offset != -1 && *length != 0 {
-		fmt.Printf("data to read %d\n", *length)
+		now = time.Now()
+		fmt.Printf("data to read %d MB\n", *length/1024/1000)
 		data := ewf_image.RetrieveData(*offset, *length)
+		fmt.Printf("data read in %f secs \n", time.Since(now).Seconds())
 
-		fmt.Printf("%x\n", data[0:1])
+		if *out != "" {
+			f, _ := os.Create(*out)
+
+			f.Write(data)
+			f.Close()
+		}
+
 	}
 
 	if *verify {
