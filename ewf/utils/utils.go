@@ -18,10 +18,23 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/aarsakian/EWF_Reader/logger"
 	// "io/ioutil"
 )
 
 type NoNull string
+
+type ChunkData struct {
+	Data         []byte
+	IsCompressed bool
+	Id           int
+}
+
+type Result struct {
+	Data []byte
+	Id   int
+}
 
 type Queue struct { //ring buffer
 	Elements sync.Map
@@ -259,20 +272,56 @@ func Decompress(val []byte) []byte {
 
 	}
 
-	//var buf bytes.Buffer // buffer needs no initilization pointer
-	if err != nil {
-		panic(err)
+	data := dst.Bytes()
+	logger.EWF_Readerlogger.Info(fmt.Sprintf("Decompressed %d bytes", len(data)))
+	return data
+}
+
+func DecompressCH(in <-chan ChunkData, out chan<- Result, done chan<- bool) {
+	//	defer TimeTrack(time.Now(), "decompressing")
+	var r io.ReadCloser
+	var b *bytes.Reader
+	var bytesRead, lent int64
+	var dst bytes.Buffer
+	var err error
+
+	for val := range in {
+		if val.IsCompressed {
+			b = bytes.NewReader(val.Data)
+
+			r, err = zlib.NewReader(b)
+
+			if err != nil {
+				if err == io.EOF {
+					fmt.Println(err)
+
+				}
+
+				log.Fatal(err)
+			}
+			defer r.Close()
+			lent, err = dst.ReadFrom(r)
+			bytesRead += lent
+			//	fmt.Println(":EM", bytesRead, len(val), int(bytesRead) > len(val))
+			if err != nil {
+				//fmt.Println(err)
+				log.Fatal(err)
+
+			}
+
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Decompressed %d bytes", len(val.Data)))
+
+			out <- Result{Id: val.Id, Data: dst.Bytes()}
+		} else {
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Sent %d bytes", len(val.Data)))
+
+			out <- Result{Id: val.Id, Data: val.Data}
+		}
+
 	}
 
-	//io.Copy(&buf, r)
+	close(out)
 
-	if err != nil {
-		panic(err)
-	}
-
-	//   fmt.Printf("data  %d \n", len(buf.Bytes()))
-
-	return dst.Bytes()
 }
 
 func DecompressF(val []byte) []byte {
