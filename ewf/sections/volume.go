@@ -67,6 +67,6 @@ func (ewf_volume_section EWF_Volume_Section) GetAttr(attr string) interface{} {
 }
 
 func (ewf_volume_section EWF_Volume_Section) Print() {
-	fmt.Printf("chunks %d sectors per chunck %d\n", ewf_volume_section.Vol_Data.ChunkCount,
+	fmt.Printf("chunks %d sectors per chunk %d\n", ewf_volume_section.Vol_Data.ChunkCount,
 		ewf_volume_section.Vol_Data.NofSectorPerChunk)
 }

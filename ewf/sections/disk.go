@@ -50,7 +50,7 @@ func (ewf_disk_section EWF_Disk_Section) GetAttr(attr string) interface{} {
 }
 
 func (ewf_disk_section EWF_Disk_Section) Print() {
-	fmt.Printf("chunks %d sectors per chunck %d\n", ewf_disk_section.Disk_Data.ChunkCount,
+	fmt.Printf("chunks %d sectors per chunk %d\n", ewf_disk_section.Disk_Data.ChunkCount,
 		ewf_disk_section.Disk_Data.NofSectorPerChunk)
 }
 
