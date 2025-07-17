@@ -59,9 +59,7 @@ func main() {
 	ewf_image := ewf.EWF_Image{Profiling: *profile}
 
 	fmt.Printf("Parsing %d evidence files \n", len(filenames))
-	now := time.Now()
-	ewf_image.ParseEvidence(filenames)
-	fmt.Printf("Parsed evidence %d files in %f secs\n", len(filenames), time.Since(now).Seconds())
+	ewf_image.ParseEvidenceCH(filenames)
 
 	if *showImageInfo {
 		ewf_image.ShowInfo()
@@ -81,7 +79,7 @@ func main() {
 	}
 
 	if *offset != -1 && *length != 0 {
-		now = time.Now()
+		now := time.Now()
 		fmt.Printf("data to read %d MB\n", *length/1024/1000)
 		data := ewf_image.RetrieveData(*offset, *length)
 		fmt.Printf("data read in %f secs \n", time.Since(now).Seconds())
