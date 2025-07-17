@@ -277,16 +277,19 @@ func Decompress(val []byte) []byte {
 	return data
 }
 
-func DecompressCH(in <-chan ChunkData, out chan<- Result, done chan<- bool) {
+func DecompressCH(in <-chan ChunkData, out chan<- Result, wg *sync.WaitGroup) {
 	//	defer TimeTrack(time.Now(), "decompressing")
+	defer wg.Done()
+
 	var r io.ReadCloser
 	var b *bytes.Reader
 	var bytesRead, lent int64
-	var dst bytes.Buffer
+
 	var err error
 
 	for val := range in {
 		if val.IsCompressed {
+			var dst bytes.Buffer
 			b = bytes.NewReader(val.Data)
 
 			r, err = zlib.NewReader(b)
@@ -320,7 +323,6 @@ func DecompressCH(in <-chan ChunkData, out chan<- Result, done chan<- bool) {
 		}
 
 	}
-
 	close(out)
 
 }
