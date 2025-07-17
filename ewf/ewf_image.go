@@ -50,7 +50,7 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 
 		logger.EWF_Readerlogger.Info(fmt.Sprintf("File %s ", ewf_file.Name))
 
-		ewf_file.LocateDataAlt(ewf_file_chunks, relativeOffset, int(length), &buf, int(ewf_image.Chunksize))
+		ewf_file.LocateData(ewf_file_chunks, relativeOffset, int(length), &buf, int(ewf_image.Chunksize))
 
 		firstchunkId = ewf_file_Nofchunks + 1
 
@@ -196,7 +196,55 @@ func (ewf_image *EWF_Image) CacheIt(chunkId int, chunksRequired int, relivativeO
 	}
 }
 
+func (ewf_image *EWF_Image) ParseEvidenceCH(filenames []string) {
+	now := time.Now()
+
+	numWorker := 5
+	ewf_files := make(EWF_files, len(filenames))
+
+	if ewf_image.Profiling {
+		Utils.TimeTrack(time.Now(), fmt.Sprintf("Parsed segments  %d in", len(filenames)))
+	}
+
+	done := make([]chan bool, numWorker)
+	ewf_filesCH := make(chan EWF_file)
+
+	filesPerWorker := len(filenames) / numWorker
+
+	for i := 0; i < numWorker; i++ {
+		start := i * filesPerWorker
+		end := start + filesPerWorker
+		if i == numWorker-1 { //last worker gets remaining files
+			end = len(filenames)
+		}
+		done[i] = make(chan bool)
+		go ewf_image.ParseEvidenceWorker(filenames[start:end], start, ewf_filesCH, done[i])
+	}
+
+	//sync point
+	go func() {
+		for i := 0; i < numWorker; i++ {
+			<-done[i]
+		}
+		close(ewf_filesCH)
+	}()
+	for ewf_file := range ewf_filesCH {
+		//fmt.Printf("Processed %s id %d\n", ewf_file.Name, ewf_file.Id)
+		ewf_files[ewf_file.Id] = ewf_file
+	}
+	fmt.Printf("Parsed evidence %d files in %f secs\n", len(filenames), time.Since(now).Seconds())
+	ewf_image.QueuedchunkIds = Utils.Queue{Capacity: NOFchunkS}
+	ewf_image.ewf_files = ewf_files
+	now = time.Now()
+
+	ewf_image.populatechunkOffsets()
+	fmt.Printf("populated map of chunks in %f secs\n", time.Since(now).Seconds())
+
+}
+
 func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
+	now := time.Now()
+
 	ewf_files := make(EWF_files, len(filenames))
 	if ewf_image.Profiling {
 		Utils.TimeTrack(time.Now(), fmt.Sprintf("Parsed segments  %d in", len(filenames)))
@@ -233,11 +281,48 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 
 	}
 
+	fmt.Printf("Parsed evidence %d files in %f secs\n", len(filenames), time.Since(now).Seconds())
+
 	ewf_image.QueuedchunkIds = Utils.Queue{Capacity: NOFchunkS}
 	ewf_image.ewf_files = ewf_files
-	fmt.Printf("about to populate map of chunks\n")
-	ewf_image.populatechunkOffsets()
 
+	now = time.Now()
+
+	ewf_image.populatechunkOffsets()
+	fmt.Printf("populated map of chunks in %f secs\n", time.Since(now).Seconds())
+
+}
+
+func (ewf_image *EWF_Image) ParseEvidenceWorker(filenames []string, start int, ewf_filesCH chan<- EWF_file, done chan<- bool) {
+	for idx, filename := range filenames {
+		ewf_file := EWF_file{Name: filename, Id: start + idx}
+		ewf_file.CreateHandler()
+
+		ewf_file.ParseHeader()
+
+		if !ewf_file.IsValid() {
+			fmt.Println(ewf_file.Name, "not valid header")
+			break
+		}
+
+		ewf_file.ParseSegment()
+		if ewf_image.Profiling {
+			fmt.Printf("Parsed segment %s\n", ewf_file.Name)
+		}
+
+		if ewf_file.IsFirst() {
+			chunkCount, nofSectorPerChunk, nofBytesPerSector, _, _, _ := ewf_file.GetchunkInfo()
+			ewf_image.SetchunkInfo(chunkCount, nofSectorPerChunk, nofBytesPerSector)
+
+		}
+		ewf_file.CloseHandler()
+		ewf_filesCH <- ewf_file
+		if ewf_file.IsLast() {
+			break
+		}
+	}
+
+	done <- true
 }
 
 func (ewf_image *EWF_Image) GetHash() string {
