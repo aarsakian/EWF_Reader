@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
 	Utils "github.com/aarsakian/EWF_Reader/ewf/utils"
@@ -21,6 +22,7 @@ const NofSections = 200
 type EWF_files []EWF_file
 
 type EWF_file struct {
+	Id           int
 	Name         string
 	Handler      *os.File
 	Size         int64
@@ -75,7 +77,7 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 					chunk.DataOffset, buffer.Len(), idx))
 				buf = ewf_file.ReadAt(int64(chunk.DataOffset), uint64(buffer.Len()))
 			} else {
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Exhausted chunk size Reading at %d len %d chunk pos %d",
 					chunk.DataOffset, to-from, idx))
 				buf = ewf_file.ReadAt(int64(chunk.DataOffset), uint64(to-from))
 			}
@@ -364,60 +366,75 @@ func (ewf_file *EWF_file) CloseHandler() {
 
 }
 
-func (ewf_file EWF_file) LocateDataAlt(chunks sections.Table_EntriesPtrs, from_offset int64,
+func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_EntriesPtrs, from_offset int64,
 	dataLen int, buf *bytes.Buffer, chunk_size int) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	relativeOffset := int(from_offset)
 	chunkDataCH := make(chan Utils.ChunkData, 10000)
 	resultsCH := make(chan Utils.Result, 10000)
-	done := make(chan bool)
+
 	output := make([][]byte, len(chunks)-1)
-	go func() {
-		for idx, chunk := range chunks {
-			if idx == len(chunks)-1 { //  last chunk not part of asked chunk range
-				break
-			}
 
-			if chunk.IsCached {
-				chunkDataCH <- Utils.ChunkData{Data: chunk.DataChuck.Data, IsCompressed: chunk.IsCompressed, Id: idx}
+	var readWG sync.WaitGroup
+	var decompressWG sync.WaitGroup
+	var collectWG sync.WaitGroup
+
+	decompressWG.Add(1)
+	go Utils.DecompressCH(chunkDataCH, resultsCH, &decompressWG)
+
+	for _idx, _chunk := range chunks {
+		if _idx == len(chunks)-1 { //  last chunk not part of asked chunk range
+			break
+		}
+		readWG.Add(1)
+		go func(chunk *sections.EWF_Table_Section_Entry, idx int, wg *sync.WaitGroup) {
+			defer wg.Done()
+			to := chunks[idx+1].DataOffset
+			from := chunk.DataOffset
+
+			if to < from { //reached end of ewf_file
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
+					chunk.DataOffset, chunk_size, idx, len(chunkDataCH)))
+
+				chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(chunk_size)),
+					IsCompressed: chunk.IsCompressed, Id: idx}
 			} else {
-				to := chunks[idx+1].DataOffset
-				from := chunk.DataOffset
-
-				if to < from { //reached end of ewf_file
-
-					logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
-						chunk.DataOffset, chunk_size, idx, len(chunkDataCH)))
-
-					chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(chunk_size)), IsCompressed: chunk.IsCompressed, Id: idx}
+				//caching applies only for whole request chunks
+				if chunk.IsCached {
+					//cached therefore just use its data
+					chunkDataCH <- Utils.ChunkData{Data: chunk.DataChuck.Data, IsCompressed: false, Id: idx}
 				} else {
-					logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
+
+					logger.EWF_Readerlogger.Info(fmt.Sprintf("Exhausted chunk size Reading at %d len %d chunk id %d pos %d",
 						chunk.DataOffset, to-from, idx, len(chunkDataCH)))
 
-					chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(to-from)), IsCompressed: chunk.IsCompressed, Id: idx}
+					chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(to-from)),
+						IsCompressed: chunk.IsCompressed, Id: idx}
+
 				}
-
 			}
-		}
-		close(chunkDataCH)
-	}()
 
-	go func() {
+		}(_chunk, _idx, &readWG)
 
-		Utils.DecompressCH(chunkDataCH, resultsCH, done)
+	}
 
-	}()
-
-	go func() {
-
+	collectWG.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
 		for result := range resultsCH {
 			output[result.Id] = result.Data
 		}
-		done <- true
+
+	}(&collectWG)
+
+	go func() {
+		readWG.Wait()
+		close(chunkDataCH)
 	}()
 
-	<-done
+	decompressWG.Wait()
+	collectWG.Wait()
 
 	for _, data := range output {
 
@@ -458,7 +475,7 @@ func (ewf_file EWF_file) LocateData(chunks sections.Table_EntriesPtrs, from_offs
 					chunk.DataOffset, chunk_size, idx))
 				data = ewf_file.ReadAt(int64(from), uint64(chunk_size))
 			} else {
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Exhausted chunk size Reading at %d len %d chunk pos %d",
 					chunk.DataOffset, to-from, idx))
 				data = ewf_file.ReadAt(int64(from), uint64(to-from))
 			}
