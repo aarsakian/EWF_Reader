@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/aarsakian/EWF_Reader/ewf/sections"
@@ -18,7 +19,7 @@ type EWF_Image struct {
 	ewf_files      EWF_files
 	Chunksize      uint32
 	NofChunks      uint32
-	chunkOffsets   sections.Table_EntriesPtrs
+	chunkOffsets   sections.Table_Entries
 	QueuedchunkIds Utils.Queue
 
 	Profiling bool
@@ -132,7 +133,7 @@ func (ewf_image *EWF_Image) SetchunkInfo(chunkCount uint64, nofSectorPerChunk ui
 	ewf_image.NofChunks = uint32(chunkCount)
 }
 
-func (ewf_image *EWF_Image) Getchunks(chunkId int, chunksRequired int) sections.Table_EntriesPtrs {
+func (ewf_image *EWF_Image) Getchunks(chunkId int, chunksRequired int) sections.Table_Entries {
 	return ewf_image.chunkOffsets[chunkId : chunkId+chunksRequired+1] // add one for boundary
 }
 
@@ -144,7 +145,7 @@ func (ewf_image *EWF_Image) populatechunkOffsets() {
 	if ewf_image.Profiling {
 		defer Utils.TimeTrack(time.Now(), "populating chunks map")
 	}
-	offsets := make(sections.Table_EntriesPtrs, ewf_image.NofChunks)
+	offsets := make(sections.Table_Entries, ewf_image.NofChunks)
 	chunksProcessed := 0
 
 	for idx := range ewf_image.ewf_files {
@@ -164,20 +165,20 @@ func (ewf_image *EWF_Image) IschunkCached(chunkId int) bool {
 
 func (ewf_image *EWF_Image) CacheIt(chunkId int, chunksRequired int, relivativeOffset int, buf *bytes.Buffer) {
 	data := buf.Bytes()
+	startId := 0
 	for id := 0; id < chunksRequired; id++ {
 		if ewf_image.IschunkCached(chunkId + id) {
 			continue
 		}
 
-		if buf.Len() < int(ewf_image.Chunksize) { //cache only when buffer equals the chunk size
-			continue
-		}
 		//last chunk is used as end offset skip it or next exceeds available buffer
 		if id == chunksRequired-1 || (id+1)*int(ewf_image.Chunksize) > len(data) {
 			break
 		}
 
 		if id == 0 && relivativeOffset != 0 { // first chunk not complete skip it
+			data = data[int(ewf_image.Chunksize)-relivativeOffset:]
+			startId = 1
 			continue
 		}
 		//
@@ -190,16 +191,15 @@ func (ewf_image *EWF_Image) CacheIt(chunkId int, chunksRequired int, relivativeO
 		ewf_image.QueuedchunkIds.EnQueue(chunkId + id)
 		ewf_image.chunkOffsets[chunkId+id].IsCached = true
 
-		datachunk := sections.DataChuck{Data: data[id*int(ewf_image.Chunksize) : (id+1)*int(ewf_image.Chunksize)]}
-		ewf_image.chunkOffsets[chunkId+id].DataChuck = &datachunk
+		ewf_image.chunkOffsets[chunkId+id].DataChuck = &sections.DataChuck{Data: data[(id-startId)*int(ewf_image.Chunksize) : (id+1-startId)*int(ewf_image.Chunksize)]}
 
 	}
 }
 
 func (ewf_image *EWF_Image) ParseEvidenceCH(filenames []string) {
 	now := time.Now()
-
-	numWorker := 5
+	// IO Bound
+	numWorker := 2 * runtime.NumCPU()
 	ewf_files := make(EWF_files, len(filenames))
 
 	if ewf_image.Profiling {
