@@ -191,15 +191,15 @@ func (ewf_file EWF_file) Getchunk(chunk_id int) sections.EWF_Table_Section_Entry
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) PopulatechunkOffsets(chunkOffsetsPtrs sections.Table_EntriesPtrs, pos int) int {
+func (ewf_file EWF_file) PopulatechunkOffsets(chunkOffsetsPtrs sections.Table_Entries, pos int) int {
 	tableSections := ewf_file.Sections.Filter("table")
 	//fmt.Printf("nof chunks: \n")
 
 	for _, section := range tableSections {
 		chunks := section.GetAttr("Table_entries").(sections.Table_Entries)
 		for _, chunk := range chunks {
-			current := chunk // change pointer address
-			chunkOffsetsPtrs[pos] = &current
+
+			chunkOffsetsPtrs[pos] = chunk
 			pos++
 		}
 		//	fmt.Printf("%d \t", len(chunks))
@@ -366,7 +366,25 @@ func (ewf_file *EWF_file) CloseHandler() {
 
 }
 
-func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_EntriesPtrs, from_offset int64,
+func (ewf_file EWF_file) ReadFromChunkWorker(chunkDataCH chan<- Utils.ChunkData,
+	chunk sections.EWF_Table_Section_Entry, idx int, toRead uint64, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
+	//caching applies only for whole request chunks
+	if chunk.IsCached {
+		//cached therefore just use its data chech bounds of array
+		chunkDataCH <- Utils.ChunkData{Data: chunk.DataChuck.Data[:toRead], IsCompressed: false, Id: idx}
+	} else {
+
+		chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(chunk.DataOffset), toRead),
+			IsCompressed: chunk.IsCompressed, Id: idx}
+
+	}
+
+}
+
+func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_Entries, from_offset int64,
 	dataLen int, buf *bytes.Buffer, chunk_size int) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
@@ -383,39 +401,22 @@ func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_EntriesPtrs, from_of
 	decompressWG.Add(1)
 	go Utils.DecompressCH(chunkDataCH, resultsCH, &decompressWG)
 
-	for _idx, _chunk := range chunks {
-		if _idx == len(chunks)-1 { //  last chunk not part of asked chunk range
+	for idx, chunk := range chunks {
+		if idx == len(chunks)-1 { //  last chunk not part of asked chunk range
 			break
 		}
 		readWG.Add(1)
-		go func(chunk *sections.EWF_Table_Section_Entry, idx int, wg *sync.WaitGroup) {
-			defer wg.Done()
-			to := chunks[idx+1].DataOffset
-			from := chunk.DataOffset
-
-			if to < from { //reached end of ewf_file
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
-					chunk.DataOffset, chunk_size, idx, len(chunkDataCH)))
-
-				chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(chunk_size)),
-					IsCompressed: chunk.IsCompressed, Id: idx}
-			} else {
-				//caching applies only for whole request chunks
-				if chunk.IsCached {
-					//cached therefore just use its data
-					chunkDataCH <- Utils.ChunkData{Data: chunk.DataChuck.Data, IsCompressed: false, Id: idx}
-				} else {
-
-					logger.EWF_Readerlogger.Info(fmt.Sprintf("Exhausted chunk size Reading at %d len %d chunk id %d pos %d",
-						chunk.DataOffset, to-from, idx, len(chunkDataCH)))
-
-					chunkDataCH <- Utils.ChunkData{Data: ewf_file.ReadAt(int64(from), uint64(to-from)),
-						IsCompressed: chunk.IsCompressed, Id: idx}
-
-				}
-			}
-
-		}(_chunk, _idx, &readWG)
+		to := chunks[idx+1].DataOffset
+		from := chunk.DataOffset
+		if to < from { //reached end of ewf_file
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Exhausted chunk size Reading at %d len %d chunk id %d pos %d",
+				chunk.DataOffset, to-from, idx, len(chunkDataCH)))
+			go ewf_file.ReadFromChunkWorker(chunkDataCH, chunk, idx, uint64(chunk_size), &readWG)
+		} else {
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk id %d chan len %d",
+				chunk.DataOffset, to-from, idx, len(chunkDataCH)))
+			go ewf_file.ReadFromChunkWorker(chunkDataCH, chunk, idx, to-from, &readWG)
+		}
 
 	}
 
@@ -439,7 +440,7 @@ func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_EntriesPtrs, from_of
 	for _, data := range output {
 
 		remainingSpace := dataLen - buf.Len() // free buffer size
-		logger.EWF_Readerlogger.Info(fmt.Sprintf("Remaining space %d", remainingSpace))
+		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d", buf.Len()))
 
 		data = data[:chunk_size]
 
@@ -453,7 +454,7 @@ func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_EntriesPtrs, from_of
 
 }
 
-func (ewf_file EWF_file) LocateData(chunks sections.Table_EntriesPtrs, from_offset int64,
+func (ewf_file EWF_file) LocateData(chunks sections.Table_Entries, from_offset int64,
 	dataLen int, buf *bytes.Buffer, chunk_size int) {
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
@@ -465,30 +466,30 @@ func (ewf_file EWF_file) LocateData(chunks sections.Table_EntriesPtrs, from_offs
 		}
 
 		if chunk.IsCached {
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from cached ", idx))
 			data = chunk.DataChuck.Data
 		} else {
 			to := chunks[idx+1].DataOffset
 			from := chunk.DataOffset
 
 			if to < from { //reached end of ewf_file
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Reading at %d len %d chunk pos %d",
-					chunk.DataOffset, chunk_size, idx))
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from file, reached end of file", idx))
 				data = ewf_file.ReadAt(int64(from), uint64(chunk_size))
 			} else {
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Exhausted chunk size Reading at %d len %d chunk pos %d",
-					chunk.DataOffset, to-from, idx))
+				logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from file", idx))
 				data = ewf_file.ReadAt(int64(from), uint64(to-from))
 			}
 
 			if chunk.IsCompressed {
 				data = Utils.Decompress(data)
 			}
-			data = data[:chunk_size] // when checksum is included real size is chunk_size +4
+
 		}
 
+		data = data[:chunk_size] // when checksum is included real size is chunk_size +4
 		//fmt.Printf("%s %d \t,", data[0:4], idx)
 		remainingSpace := dataLen - buf.Len() // free buffer size
-		logger.EWF_Readerlogger.Info(fmt.Sprintf("Remaining space %d", remainingSpace))
+		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d len %d", buf.Len(), len(data)))
 		if len(data) > remainingSpace && remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
