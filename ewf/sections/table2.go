@@ -24,6 +24,7 @@ type EWF_Table_Section_Entry struct {
 	DataOffset   uint64 "MSB indicates if chunk data is (un)compressed (0)/1 offset relative to the start of the fileit is located in the preseding sectors section "
 	IsCompressed bool   "1 -> Compressed"
 	IsCached     bool
+	To           uint64
 	DataChuck    *DataChuck
 }
 
