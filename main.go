@@ -30,9 +30,9 @@ type Decompressor interface {
 func main() {
 	evidencePath := flag.String("evidence", "", "path to evidence")
 	verify := flag.Bool("verify", false, "verify data of evidence using adler32 checksum")
-	VerifyHash := flag.Bool("verifyHash", false, "verify stored hash in evidence")
-	showImageInfo := flag.Bool("showInfo", false, "show evidence information")
-	showHash := flag.Bool("showHash", false, "show stored hash value")
+	VerifyHash := flag.Bool("verifyhash", false, "verify stored hash in evidence")
+	showImageInfo := flag.Bool("showinfo", false, "show evidence information")
+	showHash := flag.Bool("showhash", false, "show stored hash value")
 	offset := flag.Int64("offset", -1, "offset to read data from the evidence")
 	length := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
 	profile := flag.Bool("profile", false, "profile performance")
