@@ -191,15 +191,22 @@ func (ewf_file EWF_file) Getchunk(chunk_id int) sections.EWF_Table_Section_Entry
 	return sections.EWF_Table_Section_Entry{}
 }
 
-func (ewf_file EWF_file) PopulatechunkOffsets(chunkOffsetsPtrs sections.Table_Entries, pos int) int {
+func (ewf_file EWF_file) PopulatechunkOffsets(chunkOffsets sections.Table_Entries, pos int) int {
 	tableSections := ewf_file.Sections.Filter("table")
 	//fmt.Printf("nof chunks: \n")
 
 	for _, section := range tableSections {
 		chunks := section.GetAttr("Table_entries").(sections.Table_Entries)
-		for _, chunk := range chunks {
+		for idx := range chunks {
+			if idx == len(chunks)-1 {
 
-			chunkOffsetsPtrs[pos] = chunk
+				chunks[idx].To = uint64(section.prev.Descriptor.NextSectionOffs)
+
+			} else {
+				chunks[idx].To = chunks[idx+1].DataOffset
+			}
+
+			chunkOffsets[pos] = chunks[idx]
 			pos++
 		}
 		//	fmt.Printf("%d \t", len(chunks))
@@ -461,24 +468,15 @@ func (ewf_file EWF_file) LocateData(chunks sections.Table_Entries, from_offset i
 	relativeOffset := int(from_offset)
 	var data []byte
 	for idx, chunk := range chunks {
-		if idx == len(chunks)-1 { //  last chunk not part of asked chunk range
-			break
-		}
 
 		if chunk.IsCached {
 			logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from cached ", idx))
 			data = chunk.DataChuck.Data
 		} else {
-			to := chunks[idx+1].DataOffset
-			from := chunk.DataOffset
 
-			if to < from { //reached end of ewf_file
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from file, reached end of file", idx))
-				data = ewf_file.ReadAt(int64(from), uint64(chunk_size))
-			} else {
-				logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from file", idx))
-				data = ewf_file.ReadAt(int64(from), uint64(to-from))
-			}
+			logger.EWF_Readerlogger.Info(fmt.Sprintf("Chunk %d read from file", idx))
+
+			data = ewf_file.ReadAt(int64(chunk.DataOffset), chunk.To-chunk.DataOffset)
 
 			if chunk.IsCompressed {
 				data = Utils.Decompress(data)
