@@ -57,7 +57,7 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	chunks := ewf_image.Getchunks(int(firstChunkId), int(chunksRequired))
 	segmentFirstchunkId := int64(0)
 
-	for _, ewf_file := range ewf_files {
+	for idx, ewf_file := range ewf_files {
 		ewf_file_Nofchunks := ewf_filesMap[ewf_file]
 		if int(ewf_file_Nofchunks+1) >= len(chunks) {
 
@@ -69,11 +69,14 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 		}
 
 		logger.EWF_Readerlogger.Info(fmt.Sprintf("File %s ", ewf_file.Name))
-
-		ewf_file.LocateData(ewf_file_chunks, relativeOffset, int(length), &buf, int(ewf_image.Chunksize))
+		if idx == 0 {
+			ewf_file.LocateData(ewf_file_chunks, relativeOffset, int(length), &buf, int(ewf_image.Chunksize))
+		} else {
+			// next chunks start from offset 0
+			ewf_file.LocateData(ewf_file_chunks, 0, int(length), &buf, int(ewf_image.Chunksize))
+		}
 
 		segmentFirstchunkId = ewf_file_Nofchunks + 1
-		relativeOffset = 0
 
 	}
 	ewf_image.CacheIt(int(firstChunkId), int(chunksRequired), int(relativeOffset), &buf)
