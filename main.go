@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -33,11 +34,11 @@ func main() {
 	VerifyHash := flag.Bool("verifyhash", false, "verify stored hash in evidence")
 	showImageInfo := flag.Bool("showinfo", false, "show evidence information")
 	showHash := flag.Bool("showhash", false, "show stored hash value")
-	offset := flag.Int64("offset", -1, "offset to read data from the evidence")
-	length := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
+	offset := flag.Int64("offset", 0, "offset to read data from the evidence")
+	length := flag.Int64("len", math.MaxInt64, "number of bytes to read from offset in the evidence")
 	profile := flag.Bool("profile", false, "profile performance")
 	logactive := flag.Bool("log", false, "log activity")
-	out := flag.String("out", "", "file to write to")
+	out := flag.String("out", "", "filename to write raw data")
 
 	flag.Parse()
 
@@ -74,24 +75,26 @@ func main() {
 		panic("offset exceeds size of data")
 	}
 
-	if *offset+*length > int64(ewf_image.NofChunks)*int64(ewf_image.Chunksize) {
+	if *length != math.MaxInt64 && *offset+*length > int64(ewf_image.NofChunks)*int64(ewf_image.Chunksize) {
 		panic("len exceeds remaing data area")
 	}
 
-	if *offset != -1 && *length != 0 {
-		now := time.Now()
+	now := time.Now()
+
+	if *length == math.MaxInt64 && *out != "" {
+		ewf_image.WriteRawFile(*out)
+	} else {
 		fmt.Printf("data to read %d MB\n", *length/1024/1000)
 		data := ewf_image.RetrieveData(*offset, *length)
-		fmt.Printf("data read in %f secs \n", time.Since(now).Seconds())
-
 		if *out != "" {
 			f, _ := os.Create(*out)
 
 			f.Write(data)
 			f.Close()
 		}
-
 	}
+
+	fmt.Printf("data wrote in %f secs \n", time.Since(now).Seconds())
 
 	if *verify {
 		verified := ewf_image.Verify()
