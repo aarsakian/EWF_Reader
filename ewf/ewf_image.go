@@ -97,7 +97,11 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	firstChunkId := offset / int64(ewf_image.Chunksize)   // the start id with respect to asked offset
 	lastChunkId := (offset + length) / int64(ewf_image.Chunksize)
 
-	chunksRequired = lastChunkId - firstChunkId + 1
+	if lastChunkId == int64(len(ewf_image.chunkOffsets)) {
+		chunksRequired = lastChunkId - firstChunkId
+	} else {
+		chunksRequired = lastChunkId - firstChunkId + 1
+	}
 
 	ewf_filesMap := ewf_image.LocateSegments(firstChunkId, chunksRequired) // the files that contains the asked data
 
