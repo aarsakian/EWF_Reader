@@ -22,7 +22,11 @@ type Job struct {
 
 func (ewf_image EWF_Image) WriteRawFile(outfile string) {
 	offset := int64(0)
-	diskSize := int64(ewf_image.GetDiskSize())
+	diskSize, err := ewf_image.GetDiskSize()
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Printf("about to write %d MB raw data to %s\n", diskSize/1024/1024, outfile)
 	//_buf := BufferPool.Get().([]byte)
 
@@ -32,8 +36,8 @@ func (ewf_image EWF_Image) WriteRawFile(outfile string) {
 	var buf bytes.Buffer
 	buf.Grow(int(RAW_CHUNK_SIZE))
 
-	for offset < diskSize {
-		if diskSize-offset > int64(RAW_CHUNK_SIZE) {
+	for offset < int64(diskSize) {
+		if int64(diskSize)-offset > int64(RAW_CHUNK_SIZE) {
 
 			ewf_image.RetrieveDataPreAllocateBuffer(&buf, offset, RAW_CHUNK_SIZE)
 		} else {
@@ -50,7 +54,10 @@ func (ewf_image EWF_Image) WriteRawFile(outfile string) {
 
 func (ewf_image EWF_Image) WriteParallelRawFile(outfile string) {
 	offset := int64(0)
-	diskSize := int64(ewf_image.GetDiskSize())
+	diskSize, err := ewf_image.GetDiskSize()
+	if err != nil {
+		panic(err)
+	}
 
 	f, _ := os.OpenFile(outfile, os.O_CREATE|os.O_WRONLY, 0644)
 	defer f.Close()
@@ -77,9 +84,9 @@ func (ewf_image EWF_Image) WriteParallelRawFile(outfile string) {
 		}()
 	}
 
-	for offset < diskSize {
+	for offset < int64(diskSize) {
 
-		if diskSize-offset > int64(RAW_CHUNK_SIZE) {
+		if int64(diskSize)-offset > int64(RAW_CHUNK_SIZE) {
 			jobs <- Job{offset, RAW_CHUNK_SIZE}
 		} else {
 			jobs <- Job{offset, int64(diskSize) - offset}
