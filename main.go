@@ -83,7 +83,7 @@ func main() {
 
 	if *length == math.MaxInt64 && *out != "" {
 		ewf_image.WriteRawFile(*out)
-	} else {
+	} else if *length != math.MaxInt64 {
 		fmt.Printf("data to read %d MB\n", *length/1024/1000)
 		data := ewf_image.RetrieveData(*offset, *length)
 		if *out != "" {
@@ -97,13 +97,19 @@ func main() {
 	fmt.Printf("data wrote in %f secs \n", time.Since(now).Seconds())
 
 	if *verify {
+		fmt.Println("Verifying adler32 checksums")
 		verified := ewf_image.Verify()
 		fmt.Println("verified ", verified)
 	}
 
 	if *VerifyHash {
 		verified1 := ewf_image.VerifyHash()
-		fmt.Println("Verified hash", verified1) // buf)
+		if verified1 {
+			fmt.Println("MD5 hash verified successfully", verified1, ewf_image.GetHash()) // buf)
+		} else {
+			fmt.Println("MD5 hash verification failed")
+		}
+
 	}
 
 }
