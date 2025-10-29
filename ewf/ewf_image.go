@@ -2,7 +2,9 @@ package ewf
 
 import (
 	"bytes"
+	"container/list"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -97,7 +99,11 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 	firstChunkId := offset / int64(ewf_image.Chunksize)   // the start id with respect to asked offset
 	lastChunkId := (offset + length) / int64(ewf_image.Chunksize)
 
-	chunksRequired = lastChunkId - firstChunkId + 1
+	if lastChunkId == int64(len(ewf_image.chunkOffsets)) {
+		chunksRequired = lastChunkId - firstChunkId
+	} else {
+		chunksRequired = lastChunkId - firstChunkId + 1
+	}
 
 	ewf_filesMap := ewf_image.LocateSegments(firstChunkId, chunksRequired) // the files that contains the asked data
 
@@ -150,14 +156,15 @@ func (ewf_image *EWF_Image) ShowInfo() {
 	fmt.Println("toolInfo", toolInfo)
 }
 
-func (ewf_image *EWF_Image) GetDiskSize() uint64 {
+func (ewf_image *EWF_Image) GetDiskSize() (uint64, error) {
+
 	ewf_file := ewf_image.ewf_files[0]
-	section := ewf_file.Sections.GetSectionPtr("disk")
-	if section != nil {
-		return section.GetAttr("NofSectors").(uint64) * section.GetAttr("NofBytesPerSector").(uint64)
-	} else {
-		return 0
+	sections := ewf_file.Sections.Filter([]string{"disk", "volume"})
+	for _, section := range sections {
+		return section.GetAttr("NofSectors").(uint64) * section.GetAttr("NofBytesPerSector").(uint64), nil
 	}
+	return 0, errors.New("cannot determine disk size")
+
 }
 
 func (ewf_image *EWF_Image) LocateSegments(chunk_id int64, nofRequestedChunks int64) map[EWF_file]int64 {
@@ -325,7 +332,7 @@ func (ewf_image *EWF_Image) ParseEvidenceCH(filenames []string) {
 		ewf_files[ewf_file.Id] = ewf_file
 	}
 	fmt.Printf("Parsed evidence %d files in %f secs\n", len(filenames), time.Since(now).Seconds())
-	ewf_image.QueuedchunkIds = Utils.Queue{Capacity: NOFchunkS}
+	ewf_image.QueuedchunkIds = Utils.Queue{Capacity: NOFchunkS, Indexes: list.New()}
 	ewf_image.ewf_files = ewf_files
 	now = time.Now()
 
@@ -375,7 +382,7 @@ func (ewf_image *EWF_Image) ParseEvidence(filenames []string) {
 
 	fmt.Printf("Parsed evidence %d files in %f secs\n", len(filenames), time.Since(now).Seconds())
 
-	ewf_image.QueuedchunkIds = Utils.Queue{Capacity: NOFchunkS}
+	ewf_image.QueuedchunkIds = Utils.Queue{Capacity: NOFchunkS, Indexes: list.New()}
 	ewf_image.ewf_files = ewf_files
 
 	now = time.Now()
