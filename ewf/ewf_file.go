@@ -52,7 +52,7 @@ func (ewf_file EWF_file) GetHash() string {
 }
 
 func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
-	table_sections := ewf_file.Sections.Filter("table")
+	table_sections := ewf_file.Sections.Filter([]string{"table"})
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
 	var to uint64
@@ -99,7 +99,7 @@ func (ewf_file EWF_file) CollectData(buffer *bytes.Buffer) {
 
 func (ewf_file EWF_file) Verify(chunk_size int) bool {
 	fmt.Printf("Verifying %s\n", ewf_file.Name)
-	table_sections := ewf_file.Sections.Filter("table")
+	table_sections := ewf_file.Sections.Filter([]string{"table"})
 
 	ewf_file.CreateHandler()
 	defer ewf_file.CloseHandler()
@@ -177,7 +177,7 @@ func (ewf_file EWF_file) GetchunkInfo() (uint64, uint64, uint64, uint64, string,
 }
 
 func (ewf_file EWF_file) Getchunk(chunk_id int) sections.EWF_Table_Section_Entry {
-	tableSections := ewf_file.Sections.Filter("table")
+	tableSections := ewf_file.Sections.Filter([]string{"table"})
 
 	chunk_cnt := 0
 	for _, table := range tableSections {
@@ -192,7 +192,7 @@ func (ewf_file EWF_file) Getchunk(chunk_id int) sections.EWF_Table_Section_Entry
 }
 
 func (ewf_file EWF_file) PopulatechunkOffsets(chunkOffsets sections.Table_Entries, pos int) int {
-	tableSections := ewf_file.Sections.Filter("table")
+	tableSections := ewf_file.Sections.Filter([]string{"table"})
 	//fmt.Printf("nof chunks: \n")
 
 	for _, section := range tableSections {
@@ -219,7 +219,7 @@ func (ewf_file EWF_file) PopulatechunkOffsets(chunkOffsets sections.Table_Entrie
 
 func (ewf_file EWF_file) GetTotalNofchunks() []int64 {
 	var lastOffsets []int64
-	tableSections := ewf_file.Sections.Filter("table")
+	tableSections := ewf_file.Sections.Filter([]string{"table"})
 	for _, section := range tableSections {
 		section.GetAttr("Table_entries")
 	}
