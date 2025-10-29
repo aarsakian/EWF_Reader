@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/zlib"
+	"container/list"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -23,6 +24,8 @@ import (
 	// "io/ioutil"
 )
 
+const QUEUESIZE = 1000
+
 type NoNull string
 
 type ChunkData struct {
@@ -37,36 +40,25 @@ type Result struct {
 }
 
 type Queue struct { //ring buffer
-	Elements sync.Map
-	tail     int
-	head     int
 	Capacity int
+	Indexes  *list.List
 }
 
-func (queue *Queue) EnQueue(element int) {
-	queue.Elements.Store(queue.tail, element)
-	queue.tail = (queue.tail + 1) % queue.Capacity
-
+func (queue *Queue) EnQueue(idx int) {
+	queue.Indexes.PushBack(idx)
 }
 
-func (queue *Queue) IsEmpty() bool {
-	return queue.head == queue.tail
+func (queue Queue) IsEmpty() bool {
+	return queue.Indexes.Len() == 0
 }
 
-func (queue *Queue) IsFull() bool {
-	return queue.head == (queue.tail+1)%queue.Capacity
+func (queue Queue) IsFull() bool {
+	return queue.Indexes.Len() == queue.Capacity
 }
 func (queue *Queue) DeQueue() int {
-
-	if !queue.IsEmpty() {
-		element, _ := queue.Elements.Load(queue.head)
-		queue.head = (queue.head + 1) % queue.Capacity
-
-		return element.(int)
-	} else {
-		return 0
-	}
-
+	oldest := queue.Indexes.Front()
+	queue.Indexes.Remove(oldest)
+	return oldest.Value.(int)
 }
 
 func Parse(buf *bytes.Reader, val interface{}) {
