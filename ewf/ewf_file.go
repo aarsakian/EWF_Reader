@@ -298,7 +298,9 @@ func (ewf_file *EWF_file) ParseSegment() {
 		}
 
 		cur_offset = s_descriptor.NextSectionOffs
-
+		if section.Type == "done" {
+			ewf_file.isLast = true
+		}
 		if section.Type == "done" || section.Type == "next" {
 			ewf_sections.tail = section
 			break
@@ -307,44 +309,6 @@ func (ewf_file *EWF_file) ParseSegment() {
 
 	}
 	ewf_file.Sections = &ewf_sections
-	/*
-
-		Sections[i].Dispatch() //object factory section body creation
-		if Sections[i].Type == "next" {
-
-			ewf_file.hasNext = true
-			break
-		} else if Sections[i].Type == "done" {
-
-			ewf_file.isLast = true
-			break
-		}
-
-		if Sections[i].Type != "sectors" {
-			buf = ewf_file.ReadAt(Sections[i].BodyOffset-cur_offset, cur_offset) //read section body
-
-		}
-
-		Sections[i].ParseBody(buf)
-		fmt.Println("finished ", Sections[i].Type,
-			"KB Remaining",
-			(ewf_file.Size-cur_offset)/1024, "OFFS", cur_offset, " length KB",
-			(Sections[i].BodyOffset-cur_offset)/1024)
-		cur_offset = Sections[i].BodyOffset
-		runtime.ReadMemStats(&m)
-		if Sections[i].Type == "table" {
-			e := Sections[i].GetAttr("Table_entries").([]uint32)[:]
-
-			ewf_file.Entries = Utils.Append(ewf_file.Entries, e)
-
-		}
-		Sections[i].GetAttr("MD5_value")
-
-		fmt.Printf("Asked %d,Allocated %d,unused %d, released %d,round %d", m.HeapSys, m.HeapAlloc,
-			m.HeapIdle, m.HeapReleased, i)
-
-	}*/
-	//disk section and sectors section
 
 }
 
@@ -447,11 +411,14 @@ func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_Entries, from_offset
 	for _, data := range output {
 
 		remainingSpace := dataLen - buf.Len() // free buffer size
+
+		if remainingSpace < chunk_size {
+			data = data[:remainingSpace]
+		} else {
+			data = data[:chunk_size]
+		}
 		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d", buf.Len()))
-
-		data = data[:chunk_size]
-
-		if len(data) > remainingSpace && remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
+		if remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
 		}
@@ -483,12 +450,17 @@ func (ewf_file EWF_file) LocateData(chunks sections.Table_Entries, from_offset i
 			}
 
 		}
-
-		data = data[:chunk_size] // when checksum is included real size is chunk_size +4
-		//fmt.Printf("%s %d \t,", data[0:4], idx)
 		remainingSpace := dataLen - buf.Len() // free buffer size
+		if remainingSpace < chunk_size {
+			data = data[:remainingSpace]
+		} else {
+			data = data[:chunk_size]
+		}
+		// when checksum is included real size is chunk_size +4
+		//fmt.Printf("%s %d \t,", data[0:4], idx)
+
 		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d len %d", buf.Len(), len(data)))
-		if len(data) > remainingSpace && remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
+		if remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
 		}
