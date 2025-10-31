@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-var RAW_CHUNK_SIZE int64 = 4 * 1024 * 1024
+var RAW_CHUNK_SIZE int64 = 256 * 1024 * 1024
 
 var bufferPool = sync.Pool{
 	New: func() interface{} {
@@ -20,14 +20,20 @@ type Job struct {
 	size   int64
 }
 
-func (ewf_image EWF_Image) WriteRawFile(outfile string) {
-	offset := int64(0)
+func (ewf_image EWF_Image) WriteRawFile(outfile string, offset int64, length int64) {
 	diskSize, err := ewf_image.GetDiskSize()
 	if err != nil {
 		panic(err)
 	}
+	if length > int64(diskSize)-offset {
+		panic("Length cannot exceed disk size")
+	}
 
-	fmt.Printf("about to write %d MB raw data to %s\n", diskSize/1024/1024, outfile)
+	if length == 0 {
+		length = int64(diskSize) - offset
+	}
+
+	fmt.Printf("about to write %d MB raw data to %s\n", length/1024/1024, outfile)
 	//_buf := BufferPool.Get().([]byte)
 
 	f, _ := os.OpenFile(outfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
