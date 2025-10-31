@@ -101,6 +101,8 @@ func (ewf_image *EWF_Image) RetrieveData(offset int64, length int64) []byte {
 
 	if lastChunkId == int64(len(ewf_image.chunkOffsets)) {
 		chunksRequired = lastChunkId - firstChunkId
+	} else if lastChunkId > int64(len(ewf_image.chunkOffsets)) {
+		chunksRequired = int64(len(ewf_image.chunkOffsets)) - firstChunkId
 	} else {
 		chunksRequired = lastChunkId - firstChunkId + 1
 	}
