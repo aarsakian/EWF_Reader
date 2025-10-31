@@ -35,7 +35,7 @@ func main() {
 	showImageInfo := flag.Bool("showinfo", false, "show evidence information")
 	showHash := flag.Bool("showhash", false, "show stored hash value")
 	offset := flag.Int64("offset", 0, "offset to read data from the evidence")
-	length := flag.Int64("len", math.MaxInt64, "number of bytes to read from offset in the evidence")
+	length := flag.Int64("len", 0, "number of bytes to read from offset in the evidence")
 	profile := flag.Bool("profile", false, "profile performance")
 	logactive := flag.Bool("log", false, "log activity")
 	out := flag.String("out", "", "filename to write raw data")
@@ -81,17 +81,12 @@ func main() {
 
 	now := time.Now()
 
-	if *length == math.MaxInt64 && *out != "" {
-		ewf_image.WriteRawFile(*out)
-	} else if *length != math.MaxInt64 {
+	if *out != "" {
+		ewf_image.WriteRawFile(*out, *offset, *length)
+	} else {
 		fmt.Printf("data to read %d MB\n", *length/1024/1000)
-		data := ewf_image.RetrieveData(*offset, *length)
-		if *out != "" {
-			f, _ := os.Create(*out)
+		ewf_image.RetrieveData(*offset, *length)
 
-			f.Write(data)
-			f.Close()
-		}
 	}
 
 	fmt.Printf("data wrote in %f secs \n", time.Since(now).Seconds())
