@@ -410,20 +410,21 @@ func (ewf_file EWF_file) LocateDataCH(chunks sections.Table_Entries, from_offset
 
 	for _, data := range output {
 
+		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d len %d", buf.Len(), len(data)))
 		remainingSpace := dataLen - buf.Len() // free buffer size
-
-		if remainingSpace < chunk_size {
-			data = data[:remainingSpace]
-		} else {
+		if len(data) > chunk_size {
 			data = data[:chunk_size]
 		}
-		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d", buf.Len()))
+		// when checksum is included real size is chunk_size +4
+		//fmt.Printf("%s %d \t,", data[0:4], idx)
+
 		if remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
 		}
 		buf.Write(data[relativeOffset:])
 		relativeOffset = 0
+
 	}
 
 }
@@ -450,16 +451,14 @@ func (ewf_file EWF_file) LocateData(chunks sections.Table_Entries, from_offset i
 			}
 
 		}
+		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d len %d", buf.Len(), len(data)))
 		remainingSpace := dataLen - buf.Len() // free buffer size
-		if remainingSpace < chunk_size {
-			data = data[:remainingSpace]
-		} else {
+		if len(data) > chunk_size {
 			data = data[:chunk_size]
 		}
 		// when checksum is included real size is chunk_size +4
 		//fmt.Printf("%s %d \t,", data[0:4], idx)
 
-		logger.EWF_Readerlogger.Info(fmt.Sprintf("Cur offset %d len %d", buf.Len(), len(data)))
 		if remainingSpace+relativeOffset < len(data) { // user asked a size less than the last chunk
 			buf.Write(data[relativeOffset : relativeOffset+remainingSpace])
 			break
