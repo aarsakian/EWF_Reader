@@ -125,6 +125,9 @@ func Unmarshal(data []byte, v interface{}) error {
 				binary.Read(bytes.NewBuffer(data[len-8:len]), binary.LittleEndian, &temp)
 
 			} else {
+				if idx+8 >= len(data) {
+					return errors.New("not enough data to parse type uint64")
+				}
 				binary.Read(bytes.NewBuffer(data[idx:idx+8]), binary.LittleEndian, &temp)
 				idx += 8
 			}
