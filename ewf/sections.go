@@ -130,6 +130,8 @@ func (section *Section) ParseBody(buf []byte) {
 		section.body = new(sections.XHash)
 	case "x_statistics":
 		section.body = new(sections.XStatistics)
+	case "error2":
+		section.body = new(sections.Error2_Section)
 	default:
 		fmt.Println("uknown section", section.Type)
 	}
