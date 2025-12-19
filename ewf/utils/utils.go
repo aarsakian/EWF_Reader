@@ -42,9 +42,13 @@ type Result struct {
 type Queue struct { //ring buffer
 	Capacity int
 	Indexes  *list.List
+	mu       sync.Mutex
 }
 
 func (queue *Queue) EnQueue(idx int) {
+	queue.mu.Lock()
+	defer queue.mu.Unlock()
+
 	queue.Indexes.PushBack(idx)
 }
 
@@ -56,7 +60,11 @@ func (queue Queue) IsFull() bool {
 	return queue.Indexes.Len() == queue.Capacity
 }
 func (queue *Queue) DeQueue() int {
+	queue.mu.Lock()
+	defer queue.mu.Unlock()
+
 	oldest := queue.Indexes.Front()
+
 	queue.Indexes.Remove(oldest)
 	return oldest.Value.(int)
 }
