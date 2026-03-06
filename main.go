@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"time"
@@ -56,7 +57,9 @@ func main() {
 
 	defer Utils.TimeTrack(time.Now(), "finished")
 	filenames := Utils.FindEvidenceFiles(*evidencePath)
-
+	if len(filenames) == 0 {
+		log.Fatal("No evidence files found!")
+	}
 	ewf_image := ewf.EWF_Image{Profiling: *profile}
 
 	fmt.Printf("Parsing %d evidence files \n", len(filenames))
@@ -72,11 +75,11 @@ func main() {
 	}
 
 	if *offset > int64(ewf_image.NofChunks)*int64(ewf_image.Chunksize) {
-		panic("offset exceeds size of data")
+		log.Fatal("offset exceeds size of data")
 	}
 
 	if *length != math.MaxInt64 && *offset+*length > int64(ewf_image.NofChunks)*int64(ewf_image.Chunksize) {
-		panic("len exceeds remaing data area")
+		log.Fatal("len exceeds remaing data area")
 	}
 
 	now := time.Now()
