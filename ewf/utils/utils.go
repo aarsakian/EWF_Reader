@@ -469,14 +469,16 @@ func ToMap[K comparable, T any](keys []K, vals []T) map[K]T {
 func FindEvidenceFiles(path_ string) []string {
 
 	basePath := filepath.Dir(path_)
-
+	requestedFilename := filepath.Base(path_)
+	ext := filepath.Ext(path_)
+	requestedFilename = requestedFilename[:len(requestedFilename)-len(ext)]
 	Files, err := os.ReadDir(basePath)
 	if err != nil {
 		log.Fatal("ERR", err)
 	}
 
 	var filenames []string
-	r, _ := regexp.Compile("\\.[eEFfGgHh][a-zA-Z0-9]{1,2}$")
+	r, _ := regexp.Compile(requestedFilename + "\\.[eEFfGgHh][a-zA-Z0-9]{1,2}$")
 	for _, finfo := range Files {
 
 		if finfo.IsDir() {
